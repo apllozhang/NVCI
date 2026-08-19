@@ -16,7 +16,10 @@
   ],
   "collectionPolicy": {
     "protocol": "https:",
-    "requestTimeoutMs": 10000,
+    "requestTimeoutMs": 15000,
+    "headTimeoutMs": 15000,
+    "downloadHeaderTimeoutMs": 45000,
+    "downloadBodyIdleTimeoutMs": 120000,
     "maxPdfBytes": 52428800,
     "maxDocumentsPerRun": 15,
     "userAgent": "NVCI-Collector/0.2 (local public-document incremental audit)",
@@ -183,5 +186,5 @@
       "evidencePolicy": "official_datasheet_and_embedded_order_information"
     }
   ],
-  "bundledRevision": "2026-08-19-r2"
+  "bundledRevision": "2026-08-19-r3",
 }

@@ -66,13 +66,24 @@ function assertAllowedUrl(rawUrl, profile) {
   if (!profile.officialDomains.includes(url.hostname)) throw new Error(`来源域名不在白名单：${url.hostname}`);
   return url;
 }
-function requestTimeoutMs(profile) {
-  const configured = Number(profile?.collectionPolicy?.requestTimeoutMs || DEFAULT_REQUEST_TIMEOUT_MS);
-  return Number.isFinite(configured) ? Math.min(Math.max(configured, 1000), 60000) : DEFAULT_REQUEST_TIMEOUT_MS;
+function boundedTimeout(value, fallback, maximum = 300000) {
+  const configured = Number(value || fallback);
+  return Number.isFinite(configured) ? Math.min(Math.max(configured, 1000), maximum) : fallback;
 }
-async function safeFetch(rawUrl, options, profile, fetchImpl = fetch) {
+function requestTimeoutMs(profile) {
+  return boundedTimeout(profile?.collectionPolicy?.requestTimeoutMs, DEFAULT_REQUEST_TIMEOUT_MS, 60000);
+}
+function headTimeoutMs(profile) {
+  return boundedTimeout(profile?.collectionPolicy?.headTimeoutMs, requestTimeoutMs(profile), 60000);
+}
+function downloadHeaderTimeoutMs(profile) {
+  return boundedTimeout(profile?.collectionPolicy?.downloadHeaderTimeoutMs, requestTimeoutMs(profile), 120000);
+}
+function downloadBodyIdleTimeoutMs(profile) {
+  return boundedTimeout(profile?.collectionPolicy?.downloadBodyIdleTimeoutMs, requestTimeoutMs(profile), 300000);
+}
+async function safeFetch(rawUrl, options, profile, fetchImpl = fetch, timeoutMs = requestTimeoutMs(profile)) {
   let current = assertAllowedUrl(rawUrl, profile).toString();
-  const timeoutMs = requestTimeoutMs(profile);
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -94,9 +105,8 @@ async function safeFetch(rawUrl, options, profile, fetchImpl = fetch) {
   }
   throw new Error(`重定向次数超过限制：${rawUrl}`);
 }
-async function readResponseBuffer(response, profile) {
+async function readResponseBuffer(response, profile, timeoutMs = downloadBodyIdleTimeoutMs(profile)) {
   if (!response.body) return Buffer.from(await response.arrayBuffer());
-  const timeoutMs = requestTimeoutMs(profile);
   const reader = response.body.getReader();
   const chunks = [];
   let total = 0;
@@ -238,7 +248,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
     const row = { documentId: source.documentId, series: source.series, productPageUrl: source.productPageUrl, sourceUrl: source.pdfUrl, startedAt: nowIso(clock()) };
     try {
       assertAllowedUrl(source.pdfUrl, profile);
-      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
+      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl, headTimeoutMs(profile));
       const metadata = headerMetadata(head.response);
       row.finalUrl = head.finalUrl; Object.assign(row, metadata);
       if (metadata.status < 200 || metadata.status >= 400) throw new Error(`HTTP 状态异常：${metadata.status}`);
@@ -250,9 +260,9 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
       let sha256 = previous && previous.sha256 ? previous.sha256 : source.expectedSha256;
       let localRelativePath = previous && previous.localRelativePath ? previous.localRelativePath : '';
       if (needsDownload) {
-        const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
+        const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl, downloadHeaderTimeoutMs(profile));
         if (!get.response.ok) throw new Error(`下载 HTTP 状态异常：${get.response.status}`);
-        const buffer = await readResponseBuffer(get.response, profile);
+        const buffer = await readResponseBuffer(get.response, profile, downloadBodyIdleTimeoutMs(profile));
         if (buffer.subarray(0, 5).toString('ascii') !== '%PDF-') throw new Error('下载内容未通过 PDF 文件签名检查');
         sha256 = hashBuffer(buffer); bytesDownloaded += buffer.length;
         const hashChanged = Boolean(previous && previous.sha256 && previous.sha256 !== sha256);
@@ -342,4 +352,4 @@ function finishQueuedRun(dataDir, requestId, outcome, error = '') {
   queue.items = queue.items.slice(-100); writeJsonAtomic(queueFile, queue);
 }
 
-module.exports = { activeAuditDir, assertAllowedUrl, claimNextRun, createStatus, enqueueRun, ensureBundledProfiles, executeProfile, finishQueuedRun, listProfiles, loadProfile, nowIso, profilePaths, readJson, readResponseBuffer, recoverStaleClaims, requestTimeoutMs, safeFetch, safeName, sameMetadata, writeJsonAtomic, STALE_CLAIM_MS };
+module.exports = { activeAuditDir, assertAllowedUrl, boundedTimeout, claimNextRun, createStatus, downloadBodyIdleTimeoutMs, downloadHeaderTimeoutMs, enqueueRun, ensureBundledProfiles, executeProfile, finishQueuedRun, headTimeoutMs, listProfiles, loadProfile, nowIso, profilePaths, readJson, readResponseBuffer, recoverStaleClaims, requestTimeoutMs, safeFetch, safeName, sameMetadata, writeJsonAtomic, STALE_CLAIM_MS };
