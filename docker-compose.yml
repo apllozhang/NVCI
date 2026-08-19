@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nvci-workbench:0.1.0
+    image: nvci-workbench:0.2.0
     container_name: nvci-workbench
     restart: unless-stopped
     ports:
@@ -17,6 +17,30 @@ services:
       - ${NVCI_DATA_BIND_PATH:-nvci_data}:/data
     security_opt:
       - no-new-privileges:true
+
+  nvci-collector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nvci-workbench:0.2.0
+    container_name: nvci-collector
+    command: ["node", "automation/collector-worker.js"]
+    restart: unless-stopped
+    environment:
+      NVCI_DATA_DIR: /data
+      NVCI_AUTOMATION_ENABLED: ${NVCI_AUTOMATION_ENABLED:-true}
+      NVCI_AUTOMATION_POLL_SECONDS: ${NVCI_AUTOMATION_POLL_SECONDS:-60}
+      NVCI_AUTOMATION_RUN_ON_START: ${NVCI_AUTOMATION_RUN_ON_START:-false}
+    volumes:
+      - ${NVCI_DATA_BIND_PATH:-nvci_data}:/data
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('fs');try{const s=JSON.parse(fs.readFileSync('/data/automation/status.json','utf8'));process.exit(s.worker&&s.worker.startedAt?0:1)}catch(e){process.exit(1)}"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
 
 volumes:
   nvci_data:

@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { ensureBundledProfiles, enqueueRun, listProfiles, profilePaths, writeJsonAtomic } = require('./automation/collector-core');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -69,6 +70,7 @@ const seedDocuments = [
 
 function ensureStore() {
   mkdir(DATA_DIR); mkdir(path.join(DATA_DIR, 'library')); mkdir(path.join(DATA_DIR, 'imports')); mkdir(path.join(DATA_DIR, 'exports'));
+  ensureBundledProfiles(DATA_DIR);
   if (!fs.existsSync(file('vendor-memories.json'))) writeJson('vendor-memories.json', seedVendors);
   if (!fs.existsSync(file('products.json'))) writeJson('products.json', seedProducts);
   if (!fs.existsSync(file('documents.json'))) writeJson('documents.json', seedDocuments);
@@ -153,7 +155,41 @@ app.post('/api/health-check', auth, async (req, res) => {
   const vendorMap = new Map(vendors.map(v => [v.id, v])); for (const item of results) { const vendor = vendorMap.get(item.vendorId); if (vendor) { vendor.status = item.decision === 'reuse_unchanged_or_compare_metadata' ? 'healthy' : 'needs_validation'; vendor.lastHealthCheck = now(); vendor.lastHealthDecision = item.decision; } }
   writeJson('vendor-memories.json', vendors); const run = addRun({ id: id('health'), type: '路径健康检查', status: results.every(r => r.decision === 'reuse_unchanged_or_compare_metadata') ? 'completed' : 'attention', summary: `完成 ${results.length} 个厂商样本检查；仅记录 HTTP 元数据，未下载资料。`, createdAt: now(), results }); res.json({ run, results });
 });
-app.get('/api/export/state', auth, (req, res) => { res.setHeader('Content-Disposition', 'attachment; filename="nvci-state-export.json"'); res.json({ exportedAt: now(), vendors: readJson('vendor-memories.json', []), products: readJson('products.json', []), documents: readJson('documents.json', []), runs: runs(), settings: readJson('settings.json', {}) }); });
+app.get('/api/automation', auth, (req, res) => {
+  ensureBundledProfiles(DATA_DIR);
+  const automationRoot = path.join(DATA_DIR, 'automation');
+  const status = readJson(path.join('automation', 'status.json'), { profiles: {} });
+  const queue = readJson(path.join('automation', 'queue.json'), { items: [] });
+  res.json({ profiles: listProfiles(DATA_DIR), status, queue: queue.items.slice(-20) });
+});
+app.post('/api/automation/profiles/:profileId/run', auth, (req, res) => {
+  try {
+    const item = enqueueRun(DATA_DIR, req.params.profileId, 'local-admin');
+    addRun({ id: id('auto-queue'), type: '自动采集请求', status: 'queued', summary: `已请求运行 ${req.params.profileId} 本地自动采集`, createdAt: now(), details: item });
+    res.status(202).json(item);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.put('/api/automation/profiles/:profileId', auth, (req, res) => {
+  try {
+    const profileFile = profilePaths(DATA_DIR, req.params.profileId).profileFile;
+    const profile = JSON.parse(fs.readFileSync(profileFile, 'utf8'));
+    const body = req.body || {};
+    if (typeof body.enabled === 'boolean') profile.enabled = body.enabled;
+    if (body.schedule && typeof body.schedule === 'object') {
+      const next = { ...profile.schedule };
+      if (typeof body.schedule.enabled === 'boolean') next.enabled = body.schedule.enabled;
+      for (const key of ['weekday', 'hour', 'minute']) if (body.schedule[key] !== undefined) next[key] = Number(body.schedule[key]);
+      if (!Number.isInteger(next.weekday) || next.weekday < 0 || next.weekday > 6) throw new Error('weekday 必须是 0–6。');
+      if (!Number.isInteger(next.hour) || next.hour < 0 || next.hour > 23) throw new Error('hour 必须是 0–23。');
+      if (!Number.isInteger(next.minute) || next.minute < 0 || next.minute > 59) throw new Error('minute 必须是 0–59。');
+      profile.schedule = next;
+    }
+    writeJsonAtomic(profileFile, profile);
+    addRun({ id: id('auto-settings'), type: '自动采集设置', status: 'completed', summary: `已更新 ${req.params.profileId} 自动采集设置`, createdAt: now(), details: { enabled: profile.enabled, schedule: profile.schedule } });
+    res.json({ profileId: profile.profileId, enabled: profile.enabled, schedule: profile.schedule });
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.get('/api/export/state', auth, (req, res) => { res.setHeader('Content-Disposition', 'attachment; filename="nvci-state-export.json"'); res.json({ exportedAt: now(), vendors: readJson('vendor-memories.json', []), products: readJson('products.json', []), documents: readJson('documents.json', []), runs: runs(), settings: readJson('settings.json', {}), automation: { profiles: listProfiles(DATA_DIR), status: readJson(path.join('automation', 'status.json'), { profiles: {} }) } }); });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.listen(PORT, () => console.log(`NVCI Workbench listening on http://0.0.0.0:${PORT}`));
