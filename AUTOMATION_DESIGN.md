@@ -32,7 +32,7 @@
 
 默认计划为每周一次，使用 NAS 本地时间在周一 02:15 执行；该设置可在 NVCI 设置中修改或关闭。页面中的“立即运行 ALE OmniSwitch”只写入受控的本地请求队列，由后台采集器执行，不允许网页提供任意 URL 或 shell 命令。
 
-后台任务会将状态写入 `/data/automation/status.json` 和 `/data/automation/runs/`。Web 页面读取这些文件显示下次运行时间、最近结果、变化文件数和异常来源。失败只会隔离在本次运行日志中，历史库、已发布快照和活动 PDF 不会被删除。
+后台任务会将状态写入 `/data/automation/status.json` 和 `/data/automation/runs/`。Web 页面读取这些文件显示下次运行时间、最近结果、变化文件数和异常来源。单个 HTTP 请求头与响应体读取均有明确超时上限；超时会记录为该来源的 `needs_route_validation`，而不是无限等待。容器重启或异常中断后，超过五分钟仍处于 `claimed` 的队列请求会自动标记为 `interrupted`，保留错误说明并允许管理员重新发起任务。失败只会隔离在本次运行日志中，历史库、已发布快照和活动 PDF 不会被删除。
 
 ## 安全与回滚
 

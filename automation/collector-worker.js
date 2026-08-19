@@ -1,6 +1,6 @@
 'use strict';
 
-const { claimNextRun, createStatus, ensureBundledProfiles, executeProfile, finishQueuedRun, listProfiles, readJson, writeJsonAtomic } = require('./collector-core');
+const { claimNextRun, createStatus, ensureBundledProfiles, executeProfile, finishQueuedRun, listProfiles, readJson, recoverStaleClaims, writeJsonAtomic } = require('./collector-core');
 
 const DATA_DIR = process.env.NVCI_DATA_DIR || '/data';
 const POLL_SECONDS = Math.max(15, Number(process.env.NVCI_AUTOMATION_POLL_SECONDS || 60));
@@ -41,6 +41,8 @@ async function runOne(profileId, trigger, requestId = '') {
 async function tick() {
   if (!ENABLED || busy) return;
   ensureBundledProfiles(DATA_DIR);
+  const recovered = recoverStaleClaims(DATA_DIR);
+  if (recovered) console.warn(JSON.stringify({ event: 'collector_stale_claims_recovered', count: recovered }));
   const queued = claimNextRun(DATA_DIR);
   if (queued) { await runOne(queued.profileId, 'manual_queue', queued.id); return; }
   const now = new Date();
@@ -57,7 +59,8 @@ async function tick() {
 
 async function main() {
   ensureBundledProfiles(DATA_DIR);
-  createStatus(DATA_DIR, { worker: { state: ENABLED ? 'idle' : 'disabled', startedAt: new Date().toISOString(), pollSeconds: POLL_SECONDS } });
+  const recovered = recoverStaleClaims(DATA_DIR);
+  createStatus(DATA_DIR, { worker: { state: ENABLED ? 'idle' : 'disabled', startedAt: new Date().toISOString(), pollSeconds: POLL_SECONDS, recoveredStaleClaims: recovered } });
   console.log(JSON.stringify({ event: 'collector_worker_started', dataDir: DATA_DIR, enabled: ENABLED, pollSeconds: POLL_SECONDS }));
   if (ENABLED && RUN_ON_START) {
     const profiles = listProfiles(DATA_DIR).filter((profile) => profile.enabled);

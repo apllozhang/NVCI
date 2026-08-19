@@ -10,6 +10,8 @@ const AUTOMATION_DIR_NAME = 'automation';
 const SNAPSHOT_DIR_NAME = 'snapshots';
 const LIBRARY_DIR_NAME = 'library';
 const MAX_REDIRECTS = 3;
+const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
+const STALE_CLAIM_MS = 5 * 60 * 1000;
 
 function nowIso(now = new Date()) { return now.toISOString().replace(/\.\d{3}Z$/, 'Z'); }
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
@@ -64,16 +66,58 @@ function assertAllowedUrl(rawUrl, profile) {
   if (!profile.officialDomains.includes(url.hostname)) throw new Error(`来源域名不在白名单：${url.hostname}`);
   return url;
 }
+function requestTimeoutMs(profile) {
+  const configured = Number(profile?.collectionPolicy?.requestTimeoutMs || DEFAULT_REQUEST_TIMEOUT_MS);
+  return Number.isFinite(configured) ? Math.min(Math.max(configured, 1000), 60000) : DEFAULT_REQUEST_TIMEOUT_MS;
+}
 async function safeFetch(rawUrl, options, profile, fetchImpl = fetch) {
   let current = assertAllowedUrl(rawUrl, profile).toString();
+  const timeoutMs = requestTimeoutMs(profile);
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    const response = await fetchImpl(current, { ...options, redirect: 'manual' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const upstreamSignal = options.signal;
+    const signal = upstreamSignal ? AbortSignal.any([controller.signal, upstreamSignal]) : controller.signal;
+    let response;
+    try {
+      response = await fetchImpl(current, { ...options, signal, redirect: 'manual' });
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error(`请求头超时（${timeoutMs}ms）：${current}`);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
     if (![301, 302, 303, 307, 308].includes(response.status)) return { response, finalUrl: current, redirectCount };
     const location = response.headers.get('location');
     if (!location) throw new Error(`重定向缺少 Location：${current}`);
     current = assertAllowedUrl(new URL(location, current).toString(), profile).toString();
   }
   throw new Error(`重定向次数超过限制：${rawUrl}`);
+}
+async function readResponseBuffer(response, profile) {
+  if (!response.body) return Buffer.from(await response.arrayBuffer());
+  const timeoutMs = requestTimeoutMs(profile);
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      let timer;
+      const next = await Promise.race([
+        reader.read(),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`响应体读取超时（${timeoutMs}ms）`)), timeoutMs); }),
+      ]).finally(() => clearTimeout(timer));
+      if (next.done) break;
+      const chunk = Buffer.from(next.value);
+      total += chunk.length;
+      if (total > profile.collectionPolicy.maxPdfBytes) throw new Error(`下载内容超过限制：${total} bytes`);
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks, total);
+  } catch (error) {
+    try { await reader.cancel(); } catch { /* best-effort cancellation */ }
+    throw error;
+  }
 }
 function headerMetadata(response) {
   return {
@@ -104,8 +148,18 @@ function ensureBundledProfiles(dataDir) {
   const copied = [];
   for (const name of fs.readdirSync(BUNDLED_PROFILE_DIR)) {
     if (!name.endsWith('.json')) continue;
+    const source = path.join(BUNDLED_PROFILE_DIR, name);
     const destination = path.join(profilesRoot, name);
-    if (!fs.existsSync(destination)) { fs.copyFileSync(path.join(BUNDLED_PROFILE_DIR, name), destination); copied.push(name); }
+    const bundled = readJson(source, null);
+    const current = readJson(destination, null);
+    if (!current) { fs.copyFileSync(source, destination); copied.push(name); continue; }
+    const state = bundled ? readJson(profilePaths(dataDir, bundled.profileId).stateFile, {}) : {};
+    const needsBootstrapSafeRefresh = bundled && bundled.bundledRevision && bundled.bundledRevision !== current.bundledRevision && !state.bootstrapComplete;
+    if (needsBootstrapSafeRefresh) {
+      const refreshed = { ...bundled, enabled: current.enabled !== false, schedule: { ...(bundled.schedule || {}), ...(current.schedule || {}) } };
+      writeJsonAtomic(destination, refreshed);
+      copied.push(`${name}:refreshed`);
+    }
   }
   return copied;
 }
@@ -184,7 +238,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
     const row = { documentId: source.documentId, series: source.series, productPageUrl: source.productPageUrl, sourceUrl: source.pdfUrl, startedAt: nowIso(clock()) };
     try {
       assertAllowedUrl(source.pdfUrl, profile);
-      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', signal: AbortSignal.timeout(profile.collectionPolicy.requestTimeoutMs), headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
+      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
       const metadata = headerMetadata(head.response);
       row.finalUrl = head.finalUrl; Object.assign(row, metadata);
       if (metadata.status < 200 || metadata.status >= 400) throw new Error(`HTTP 状态异常：${metadata.status}`);
@@ -196,10 +250,9 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
       let sha256 = previous && previous.sha256 ? previous.sha256 : source.expectedSha256;
       let localRelativePath = previous && previous.localRelativePath ? previous.localRelativePath : '';
       if (needsDownload) {
-        const get = await safeFetch(source.pdfUrl, { method: 'GET', signal: AbortSignal.timeout(profile.collectionPolicy.requestTimeoutMs), headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
+        const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl);
         if (!get.response.ok) throw new Error(`下载 HTTP 状态异常：${get.response.status}`);
-        const buffer = Buffer.from(await get.response.arrayBuffer());
-        if (buffer.length > profile.collectionPolicy.maxPdfBytes) throw new Error(`下载内容超过限制：${buffer.length} bytes`);
+        const buffer = await readResponseBuffer(get.response, profile);
         if (buffer.subarray(0, 5).toString('ascii') !== '%PDF-') throw new Error('下载内容未通过 PDF 文件签名检查');
         sha256 = hashBuffer(buffer); bytesDownloaded += buffer.length;
         const hashChanged = Boolean(previous && previous.sha256 && previous.sha256 !== sha256);
@@ -260,6 +313,20 @@ function enqueueRun(dataDir, profileId, requestedBy = 'local-admin') {
   const item = { id: `request-${crypto.randomUUID().slice(0, 8)}`, profileId, requestedBy, requestedAt: nowIso(), status: 'queued' };
   queue.items.push(item); writeJsonAtomic(queueFile, queue); return item;
 }
+function recoverStaleClaims(dataDir, staleAfterMs = STALE_CLAIM_MS) {
+  const queueFile = path.join(dataDir, AUTOMATION_DIR_NAME, 'queue.json');
+  const queue = readJson(queueFile, { items: [] });
+  const now = Date.now();
+  let recovered = 0;
+  for (const item of queue.items) {
+    if (item.status !== 'claimed' || !item.claimedAt) continue;
+    const claimedAt = Date.parse(item.claimedAt);
+    if (Number.isNaN(claimedAt) || now - claimedAt <= staleAfterMs) continue;
+    item.status = 'failed'; item.completedAt = nowIso(); item.outcome = 'interrupted'; item.error = '后台采集器重启或请求超时后自动回收的未完成任务'; recovered += 1;
+  }
+  if (recovered) { queue.items = queue.items.slice(-100); writeJsonAtomic(queueFile, queue); }
+  return recovered;
+}
 function claimNextRun(dataDir) {
   const queueFile = path.join(dataDir, AUTOMATION_DIR_NAME, 'queue.json');
   const queue = readJson(queueFile, { items: [] });
@@ -275,4 +342,4 @@ function finishQueuedRun(dataDir, requestId, outcome, error = '') {
   queue.items = queue.items.slice(-100); writeJsonAtomic(queueFile, queue);
 }
 
-module.exports = { activeAuditDir, assertAllowedUrl, claimNextRun, createStatus, enqueueRun, ensureBundledProfiles, executeProfile, listProfiles, loadProfile, nowIso, profilePaths, readJson, safeName, sameMetadata, writeJsonAtomic, finishQueuedRun };
+module.exports = { activeAuditDir, assertAllowedUrl, claimNextRun, createStatus, enqueueRun, ensureBundledProfiles, executeProfile, finishQueuedRun, listProfiles, loadProfile, nowIso, profilePaths, readJson, readResponseBuffer, recoverStaleClaims, requestTimeoutMs, safeFetch, safeName, sameMetadata, writeJsonAtomic, STALE_CLAIM_MS };

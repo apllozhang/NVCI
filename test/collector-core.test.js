@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const crypto = require('node:crypto');
-const { assertAllowedUrl, executeProfile } = require('../automation/collector-core');
+const { assertAllowedUrl, executeProfile, recoverStaleClaims, safeFetch } = require('../automation/collector-core');
 
 function sha256(buffer) { return crypto.createHash('sha256').update(buffer).digest('hex'); }
 function fixtureProfile(initialHash) {
@@ -68,4 +68,24 @@ test('首次镜像、无变化复用和变化发布均受哈希与元数据门�
   assert.equal(third.changed, 1);
   assert.equal(adapter.calls.get, 1);
   assert.equal(fs.readFileSync(activePdf).toString(), current.pdf.toString());
+});
+
+
+test('HTTP 请求超过受控超时会收敛为明确错误', async () => {
+  const profile = { officialDomains: ['www.al-enterprise.com'], collectionPolicy: { requestTimeoutMs: 1000 } };
+  const hangingFetcher = (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+  });
+  await assert.rejects(() => safeFetch('https://www.al-enterprise.com/file.pdf', { method: 'HEAD' }, profile, hangingFetcher), /请求头超时/);
+});
+
+test('陈旧 claimed 队列任务会自动恢复为可审计失败', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nvci-stale-queue-'));
+  const queueFile = path.join(root, 'automation', 'queue.json');
+  fs.mkdirSync(path.dirname(queueFile), { recursive: true });
+  fs.writeFileSync(queueFile, JSON.stringify({ items: [{ id: 'stale-1', profileId: 'fixture_ale', status: 'claimed', claimedAt: '2020-01-01T00:00:00Z' }] }));
+  assert.equal(recoverStaleClaims(root, 1000), 1);
+  const queue = JSON.parse(fs.readFileSync(queueFile, 'utf8'));
+  assert.equal(queue.items[0].status, 'failed');
+  assert.equal(queue.items[0].outcome, 'interrupted');
 });
