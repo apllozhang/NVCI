@@ -28,5 +28,13 @@ async function request(url, options = {}) {
   assert.equal(queued.data.status, 'queued');
   const after = await request('/api/automation', { headers });
   assert.ok(after.data.queue.some((item) => item.id === queued.data.id && item.status === 'queued'));
-  console.log(JSON.stringify({ profileId: profile.profileId, sourceCount: profile.sourceCount, queuedRequest: queued.data.id }));
+  const draftBody = { vendorId:'fixture_vendor', vendorName:'Fixture Vendor', displayName:'Fixture Campus Switch 官方 Data sheet', officialDomains:['www.al-enterprise.com'], productLine:{ id:'switches', name:'交换机', libraryRootName:'Fixture产品彩页' }, subseries:{ id:'campus_1000', name:'Campus 1000' }, sources:[{ series:'Campus 1000', modelNames:['C1000-24T','C1000-48P'], productPageUrl:'https://www.al-enterprise.com/en/products/switches', pdfUrl:'https://www.al-enterprise.com/-/media/assets/internet/documents/omniswitch-2260-datasheet-en.pdf', officialFileName:'Campus_1000_Data_Sheet.pdf', evidencePolicy:'official_datasheet' }] };
+  const created = await request('/api/source-configs', { method:'POST', headers, body:JSON.stringify(draftBody) });
+  assert.equal(created.response.status, 201, `source config create failed: ${JSON.stringify(created.data)}`);
+  assert.equal(created.data.approvalStatus, 'draft'); assert.equal(created.data.modelCount, 2);
+  const list = await request('/api/source-configs', { headers });
+  assert.ok(list.data.some((item) => item.profileId === created.data.profileId && item.subseries.name === 'Campus 1000'));
+  const blocked = await request(`/api/automation/profiles/${created.data.profileId}/run`, { method:'POST', headers, body:'{}' });
+  assert.equal(blocked.response.status, 400, 'unapproved source config must not be queued');
+  console.log(JSON.stringify({ profileId: profile.profileId, sourceCount: profile.sourceCount, queuedRequest: queued.data.id, draftProfile: created.data.profileId, draftModels: created.data.modelCount }));
 })().catch((error) => { console.error(error.stack || error); process.exit(1); });

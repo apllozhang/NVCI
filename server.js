@@ -2,7 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { ensureBundledProfiles, enqueueRun, listProfiles, profilePaths, writeJsonAtomic } = require('./automation/collector-core');
+const { ensureBundledProfiles, enqueueRun, listProfiles, profilePaths, readProfile, writeJsonAtomic } = require('./automation/collector-core');
+const { assertOfficialHttps, normalizeProfileDraft, profileDetail } = require('./automation/config-schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -91,6 +92,13 @@ function recursiveScan(root, out = []) {
 function runs() { return readJson('runs.json', []); }
 function addRun(run) { const items = [run, ...runs()].slice(0, MAX_RUNS); writeJson('runs.json', items); return run; }
 function statusLabel(status) { return ({ pdf_acquired: '已获公开 PDF', user_confirmed_no_brochure: '用户确认无彩页', source_unavailable: '资源 404', restricted: '访问受限', no_resource_link: '未发现资源入口', page_access_gap: '产品页访问缺口', pending: '待复核' })[status] || status; }
+function profileDetails(profileId) { const profile = readProfile(DATA_DIR, profileId); const state = readJson(path.join('automation', 'profiles', profileId, 'state.json'), {}); return profileDetail(profile, state); }
+function syncVendorFromProfile(profile) {
+  const vendors = readJson('vendor-memories.json', []); const index = vendors.findIndex((vendor) => vendor.id === profile.vendorId);
+  const record = { id: profile.vendorId, name: profile.vendorName || profile.vendorId, products: profile.productLine?.name || '未分类', domains: profile.officialDomains, primaryEvidence: profile.evidencePolicy || '官方公开资料', strategy: profile.sourcePolicy, healthUrl: profile.sources?.[0]?.productPageUrl || profile.sources?.[0]?.pdfUrl || '', status: 'pending', lastEditedAt: now() };
+  if (index >= 0) vendors[index] = { ...vendors[index], ...record, products: vendors[index].products || record.products }; else vendors.push(record);
+  writeJson('vendor-memories.json', vendors);
+}
 
 app.get('/health', (req, res) => res.json({ ok: true, service: 'NVCI Workbench', at: now() }));
 app.post('/api/login', (req, res) => {
@@ -155,6 +163,28 @@ app.post('/api/health-check', auth, async (req, res) => {
   const vendorMap = new Map(vendors.map(v => [v.id, v])); for (const item of results) { const vendor = vendorMap.get(item.vendorId); if (vendor) { vendor.status = item.decision === 'reuse_unchanged_or_compare_metadata' ? 'healthy' : 'needs_validation'; vendor.lastHealthCheck = now(); vendor.lastHealthDecision = item.decision; } }
   writeJson('vendor-memories.json', vendors); const run = addRun({ id: id('health'), type: '路径健康检查', status: results.every(r => r.decision === 'reuse_unchanged_or_compare_metadata') ? 'completed' : 'attention', summary: `完成 ${results.length} 个厂商样本检查；仅记录 HTTP 元数据，未下载资料。`, createdAt: now(), results }); res.json({ run, results });
 });
+app.get('/api/source-configs', auth, (req, res) => { ensureBundledProfiles(DATA_DIR); res.json(listProfiles(DATA_DIR).map((item) => profileDetails(item.profileId))); });
+app.get('/api/source-configs/:profileId', auth, (req, res) => { try { res.json(profileDetails(req.params.profileId)); } catch (error) { res.status(404).json({ error: String(error.message || error) }); } });
+app.post('/api/source-configs', auth, (req, res) => {
+  try { const profile = normalizeProfileDraft(req.body || {}); const target = profilePaths(DATA_DIR, profile.profileId).profileFile; if (fs.existsSync(target)) throw new Error(`来源配置已存在：${profile.profileId}`); writeJsonAtomic(target, profile); syncVendorFromProfile(profile); addRun({ id: id('source-config'), type: '来源配置新建', status: 'completed', summary: `新建 ${profile.vendorName} / ${profile.productLine.name} / ${profile.subseries.name} 草稿，含 ${profile.sources.length} 条资料`, createdAt: now(), details: { profileId: profile.profileId, approvalStatus: profile.approvalStatus } }); res.status(201).json(profileDetails(profile.profileId)); } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.put('/api/source-configs/:profileId', auth, (req, res) => {
+  try { const existing = readProfile(DATA_DIR, req.params.profileId); const profile = normalizeProfileDraft({ ...(req.body || {}), profileId: existing.profileId }, existing); const target = profilePaths(DATA_DIR, existing.profileId).profileFile; writeJsonAtomic(target, profile); syncVendorFromProfile(profile); addRun({ id: id('source-config-edit'), type: '来源配置编辑', status: 'completed', summary: `已更新 ${profile.displayName}；配置已回到草稿待样本验证状态`, createdAt: now(), details: { profileId: profile.profileId } }); res.json(profileDetails(profile.profileId)); } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/source-configs/:profileId/sample-check', auth, async (req, res) => {
+  try {
+    const profile = readProfile(DATA_DIR, req.params.profileId); const sample = profile.sources.slice(0, 5); const results = [];
+    for (const source of sample) { const started = Date.now(); try { const url = assertOfficialHttps(source.pdfUrl, profile.officialDomains, `${source.documentId} PDF URL`); const response = await fetch(url, { method: 'HEAD', redirect: 'manual', signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'NVCI-ConfigSample/0.3 (local official-source review)' } }); const contentType = response.headers.get('content-type') || ''; const ok = response.status >= 200 && response.status < 400 && contentType.toLowerCase().includes('pdf'); results.push({ documentId: source.documentId, series: source.series, modelNames: source.modelNames || [], url, status: response.status, contentType, etag: response.headers.get('etag') || '', lastModified: response.headers.get('last-modified') || '', contentLength: Number(response.headers.get('content-length') || 0), elapsedMs: Date.now() - started, ok, error: ok ? '' : '公开 PDF 样本未通过' }); } catch (error) { results.push({ documentId: source.documentId, series: source.series, modelNames: source.modelNames || [], status: 0, elapsedMs: Date.now() - started, ok: false, error: String(error.message || error) }); } }
+    const passed = results.length === sample.length && results.every((item) => item.ok); profile.sampleCheck = { checkedAt: now(), passed, sampleCount: sample.length, results }; profile.approvalStatus = passed ? 'sample_verified' : 'draft'; profile.enabled = false; profile.updatedAt = now(); writeJsonAtomic(profilePaths(DATA_DIR, profile.profileId).profileFile, profile); addRun({ id: id('source-sample'), type: '来源样本检查', status: passed ? 'completed' : 'attention', summary: `${profile.displayName}：${passed ? '样本全部通过' : '存在未通过样本'}（${sample.length} 条）`, createdAt: now(), details: { profileId: profile.profileId, passed, results } }); res.json(profileDetails(profile.profileId));
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/source-configs/:profileId/approve', auth, (req, res) => {
+  try { const profile = readProfile(DATA_DIR, req.params.profileId); if (!profile.sampleCheck?.passed) throw new Error('请先通过全部样本检查后再批准。'); profile.approvalStatus = 'approved'; profile.enabled = true; profile.approvedAt = now(); profile.approvedBy = 'local-admin'; profile.updatedAt = now(); writeJsonAtomic(profilePaths(DATA_DIR, profile.profileId).profileFile, profile); addRun({ id: id('source-approve'), type: '来源配置批准', status: 'completed', summary: `已批准并启用 ${profile.displayName}；可按需运行或设置计划`, createdAt: now(), details: { profileId: profile.profileId } }); res.json(profileDetails(profile.profileId)); } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/source-configs/:profileId/suspend', auth, (req, res) => {
+  try { const profile = readProfile(DATA_DIR, req.params.profileId); profile.approvalStatus = 'suspended'; profile.enabled = false; profile.updatedAt = now(); writeJsonAtomic(profilePaths(DATA_DIR, profile.profileId).profileFile, profile); addRun({ id: id('source-suspend'), type: '来源配置暂停', status: 'completed', summary: `已暂停 ${profile.displayName} 的后续自动运行`, createdAt: now(), details: { profileId: profile.profileId } }); res.json(profileDetails(profile.profileId)); } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+
 app.get('/api/automation', auth, (req, res) => {
   ensureBundledProfiles(DATA_DIR);
   const automationRoot = path.join(DATA_DIR, 'automation');

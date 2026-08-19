@@ -173,10 +173,14 @@ function ensureBundledProfiles(dataDir) {
   }
   return copied;
 }
-function loadProfile(dataDir, profileId) {
-  const profileFile = profilePaths(dataDir, profileId).profileFile;
-  const profile = readJson(profileFile, null);
+function readProfile(dataDir, profileId) {
+  const profile = readJson(profilePaths(dataDir, profileId).profileFile, null);
   if (!profile) throw new Error(`未找到自动采集来源配置：${profileId}`);
+  return profile;
+}
+function loadProfile(dataDir, profileId) {
+  const profile = readProfile(dataDir, profileId);
+  if (profile.approvalStatus && profile.approvalStatus !== 'approved') throw new Error(`来源配置尚未批准：${profileId}`);
   if (!profile.enabled) throw new Error(`来源配置已禁用：${profileId}`);
   if (!Array.isArray(profile.sources) || !profile.sources.length) throw new Error(`来源配置没有资料条目：${profileId}`);
   return profile;
@@ -193,8 +197,13 @@ function listProfiles(dataDir) {
       profileId: profile.profileId,
       displayName: profile.displayName,
       vendorId: profile.vendorId,
+      vendorName: profile.vendorName || profile.vendorId,
+      approvalStatus: profile.approvalStatus || 'approved',
+      productLine: profile.productLine || { id: 'legacy', name: profile.productLinePath?.[1] || '未分类', libraryRootName: profile.productLinePath?.[0] || '' },
+      subseries: profile.subseries || { id: 'legacy', name: profile.displayName },
       enabled: profile.enabled,
       sourceCount: profile.sources.length,
+      modelCount: new Set(profile.sources.flatMap((source) => source.modelNames || [])).size,
       schedule: profile.schedule,
       bootstrapComplete: Boolean(state.bootstrapComplete),
       lastCompletedAt: state.lastCompletedAt || '',
@@ -352,4 +361,4 @@ function finishQueuedRun(dataDir, requestId, outcome, error = '') {
   queue.items = queue.items.slice(-100); writeJsonAtomic(queueFile, queue);
 }
 
-module.exports = { activeAuditDir, assertAllowedUrl, boundedTimeout, claimNextRun, createStatus, downloadBodyIdleTimeoutMs, downloadHeaderTimeoutMs, enqueueRun, ensureBundledProfiles, executeProfile, finishQueuedRun, headTimeoutMs, listProfiles, loadProfile, nowIso, profilePaths, readJson, readResponseBuffer, recoverStaleClaims, requestTimeoutMs, safeFetch, safeName, sameMetadata, writeJsonAtomic, STALE_CLAIM_MS };
+module.exports = { activeAuditDir, assertAllowedUrl, boundedTimeout, claimNextRun, createStatus, downloadBodyIdleTimeoutMs, downloadHeaderTimeoutMs, enqueueRun, ensureBundledProfiles, executeProfile, finishQueuedRun, headTimeoutMs, listProfiles, loadProfile, nowIso, profilePaths, readJson, readProfile, readResponseBuffer, recoverStaleClaims, requestTimeoutMs, safeFetch, safeName, sameMetadata, writeJsonAtomic, STALE_CLAIM_MS };
