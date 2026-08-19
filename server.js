@@ -15,7 +15,7 @@ const MAX_RUNS = 100;
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public'), { index: false, maxAge: '1h' }));
+app.use(express.static(path.join(__dirname, 'public'), { index: false, maxAge: 0, etag: true }));
 
 function mkdir(dir) { fs.mkdirSync(dir, { recursive: true }); }
 function file(name) { return path.join(DATA_DIR, name); }
