@@ -255,7 +255,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
       if (!metadata.contentType.toLowerCase().includes('pdf')) throw new Error(`Content-Type 不是 PDF：${metadata.contentType || 'empty'}`);
       if (metadata.contentLength > profile.collectionPolicy.maxPdfBytes) throw new Error(`文件超过限制：${metadata.contentLength} bytes`);
       const previous = sourceState[source.documentId];
-      const needsDownload = force || !state.bootstrapComplete || !sameMetadata(previous, metadata);
+      const needsDownload = force || !sameMetadata(previous, metadata);
       row.decision = needsDownload ? 'download_candidate' : 'reuse_unchanged';
       let sha256 = previous && previous.sha256 ? previous.sha256 : source.expectedSha256;
       let localRelativePath = previous && previous.localRelativePath ? previous.localRelativePath : '';
@@ -290,7 +290,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
   }
 
   const completed = results.filter((row) => row.status === 'completed');
-  const bootstrapPublished = !state.bootstrapComplete && completed.some((row) => row.contentDisposition === 'verified_unchanged_bootstrap');
+  const bootstrapPublished = !state.bootstrapComplete && failures.length === 0 && completed.length === profile.sources.length;
   const outcome = failures.length ? 'attention' : (bootstrapPublished ? 'initial_mirror_published' : (changed.length ? 'changes_published' : 'no_change'));
   const auditDir = activeAuditDir(paths.libraryRoot, profile, startedAt, identifier);
   ensureDir(auditDir);

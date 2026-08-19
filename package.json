@@ -1,6 +1,6 @@
 {
   "name": "nvci-workbench",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Network Vendor Competitive Intelligence local workbench",
   "main": "server.js",

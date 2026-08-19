@@ -89,3 +89,23 @@ test('陈旧 claimed 队列任务会自动恢复为可审计失败', () => {
   assert.equal(queue.items[0].status, 'failed');
   assert.equal(queue.items[0].outcome, 'interrupted');
 });
+
+
+test('未完成的首次镜像会复用已核验来源而不重复下载', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nvci-bootstrap-resume-'));
+  const pdf = Buffer.from('%PDF-1.7\nresume-fixture\n');
+  const profile = fixtureProfile(sha256(pdf));
+  writeProfile(root, profile);
+  const current = { pdf, etag: 'v1', lastModified: 'Tue, 01 Jan 2026 00:00:00 GMT' };
+  let adapter = mockFetcher(current);
+  await executeProfile({ dataDir: root, profileId: profile.profileId, fetchImpl: adapter.fetchImpl });
+  const stateFile = path.join(root, 'automation', 'profiles', profile.profileId, 'state.json');
+  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  state.bootstrapComplete = false;
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+  adapter = mockFetcher(current);
+  const resumed = await executeProfile({ dataDir: root, profileId: profile.profileId, fetchImpl: adapter.fetchImpl });
+  assert.equal(adapter.calls.get, 0);
+  assert.equal(resumed.outcome, 'initial_mirror_published');
+  assert.equal(resumed.bootstrapComplete, true);
+});
