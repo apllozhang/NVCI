@@ -64,6 +64,16 @@ volumes:
 
 活动目录只保留 PDF、分类五列表格、`document_manifest.csv`、`collection_status.csv`、`resource_product_linkage.csv`、`change_log.csv`、资料缺口和用户确认记录。每次新增资料应先检查 `resource_id + sha256`：未变化则复用旧文件；发生变化则记录旧文件版本并新增变更记录。
 
+### 迁移到 fnOS 存储空间 2
+
+初始部署使用 Docker 命名卷 `nvci_data`。如需让 NVCI 的状态、资料库和导出文件保存在存储空间 2 的可见目录，先在 NAS 上确认该存储空间的实际挂载路径（不要根据“存储空间 2”的名称猜测路径），然后以 root 身份在 NVCI 项目目录运行：
+
+```bash
+NVCI_STORAGE2_ROOT=/实际/存储空间2挂载路径 sh scripts/migrate-data-to-storage2.sh
+```
+
+脚本会停止服务、完整备份命名卷、将数据迁移至 `<存储空间2>/NVCI`、写入本地 `.env` 的 `NVCI_DATA_BIND_PATH`、重启服务并等待 `healthy`。原命名卷和独立迁移备份会保留；在确认登录、资料和导出文件均正常之前不得删除。迁移成功后，NAS 可见资料根目录为 `<存储空间2>/NVCI/library/`。
+
 ## 持续更新策略
 
 不要为每次更新重新下载和重新解析整个产品线。推荐流程为：先读取上次 `collection_baseline.csv` 与最近成功快照；每个厂商随机选择 2–5 条具有代表性的公开 URL 做健康检查；路径健康且 HTTP 元数据未变则复用；仅对差异候选下载 PDF；只有新 PDF 或 SHA-256 变化的 PDF 才进入文本抽取和分析。路径异常时先小样本恢复方法，确认后才扩大范围。
