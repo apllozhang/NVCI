@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const base = process.env.NVCI_TEST_BASE || 'http://127.0.0.1:8790';
 const password = process.env.NVCI_ADMIN_PASSWORD || 'local-test-password';
@@ -18,6 +20,25 @@ async function request(url, options = {}) {
   assert.equal(login.response.status, 200, `login failed: ${JSON.stringify(login.data)}`);
   const cookie = login.response.headers.get('set-cookie').split(';')[0];
   const headers = { Cookie: cookie, 'Content-Type': 'application/json' };
+  const dataDir = process.env.NVCI_DATA_DIR;
+  if (dataDir) {
+    const libraryDir = path.join(dataDir, 'library', '测试资料库', '01 官方彩页');
+    fs.mkdirSync(libraryDir, { recursive: true });
+    for (let index = 1; index <= 23; index += 1) {
+      const ext = index % 3 === 0 ? '.csv' : index % 3 === 1 ? '.pdf' : '.json';
+      fs.writeFileSync(path.join(libraryDir, `测试文件-${String(index).padStart(2, '0')}${ext}`), `fixture-${index}`);
+    }
+  }
+  const firstLibraryPage = await request('/api/library/scan?page=1&pageSize=10&sort=path_asc', { headers });
+  assert.equal(firstLibraryPage.response.status, 200, `library scan failed: ${JSON.stringify(firstLibraryPage.data)}`);
+  assert.ok(firstLibraryPage.data.entryCount >= 23, 'library scan must return all indexed files');
+  assert.equal(firstLibraryPage.data.entries.length, 10, 'library page size 10 must be honored');
+  assert.equal(firstLibraryPage.data.pageCount, 3, 'library results must provide page count');
+  const secondLibraryPage = await request('/api/library/scan?page=2&pageSize=10&sort=path_asc', { headers });
+  assert.equal(secondLibraryPage.data.entries[0].relativePath.endsWith('测试文件-11.json'), true, 'library paths must use stable natural ordering');
+  const filteredLibrary = await request('/api/library/scan?page=1&pageSize=20&type=pdf&q=测试文件-01&sort=path_asc', { headers });
+  assert.equal(filteredLibrary.data.filteredCount, 1, 'library query and type filter must be combined');
+  assert.equal(filteredLibrary.data.entries[0].fileName, '测试文件-01.pdf');
   const status = await request('/api/automation', { headers });
   assert.equal(status.response.status, 200, `automation state failed: ${JSON.stringify(status.data)}`);
   const profile = status.data.profiles.find((item) => item.profileId === 'ale_omniswitch');

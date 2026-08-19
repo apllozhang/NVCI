@@ -11,6 +11,7 @@ services:
     environment:
       PORT: 8787
       NVCI_DATA_DIR: /data
+      NVCI_LIBRARY_HOST_PATH: ${NVCI_LIBRARY_HOST_PATH:-/vol2/1000/NVCI/library}
       NVCI_ADMIN_PASSWORD: ${NVCI_ADMIN_PASSWORD:?请在 .env 中设置 NVCI_ADMIN_PASSWORD}
       NVCI_SESSION_SECRET: ${NVCI_SESSION_SECRET:?请在 .env 中设置随机 NVCI_SESSION_SECRET}
     volumes:

@@ -56,8 +56,50 @@ function renderProducts() {
   const render = () => { const q=document.getElementById('product-search').value.toLowerCase(); const status=document.getElementById('product-status').value; const rows=state.products.filter(p => (!q || Object.values(p).join(' ').toLowerCase().includes(q)) && (!status || p.status===status)); document.getElementById('product-rows').innerHTML=rows.map(p=>`<tr><td>${esc(p.vendor)}</td><td>${esc(p.line)}<br><span class="muted">${esc(p.category)}</span></td><td><div class="product-name">${esc(p.name)}</div></td><td><span class="tag ${esc(p.status)}">${statusLabel(p.status)}</span></td><td>${esc(p.resourceId || '—')}</td><td>${p.productUrl ? `<a href="${esc(p.productUrl)}" target="_blank" rel="noreferrer">产品 / 资源页</a>` : '—'}</td><td>${esc(p.note || '—')}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">未找到符合条件的记录。</td></tr>'; };
   document.getElementById('product-search').addEventListener('input', render); document.getElementById('product-status').addEventListener('change', render); render();
 }
+function libraryTypeLabel(ext) { return ext ? ext.slice(1).toUpperCase() : '无扩展名'; }
 async function renderLibrary() {
-  const target=document.getElementById('library-counts'); target.innerHTML='<p class="muted">正在扫描活动资料目录…</p>'; try { const data=await api('/api/library/scan'); const c=data.counts; target.innerHTML=[['PDF',c.pdf],['CSV',c.csv],['JSON',c.json],['其他文件',c.other]].map(([k,v])=>`<div class="stat-card"><div class="label">${k}</div><div class="value">${v}</div></div>`).join(''); document.getElementById('library-rows').innerHTML=data.entries.map(e=>`<tr><td>${esc(e.relativePath)}</td><td>${esc(e.ext || '无扩展名')}</td><td>${fmtBytes(e.bytes)}</td><td>${fmtDate(e.modifiedAt)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">活动资料目录为空。请将 PDF 和记录文件放入挂载目录。</td></tr>'; document.getElementById('scan-library').addEventListener('click', renderLibrary); } catch(err){ target.innerHTML=`<p class="form-error">${esc(err.message)}</p>`; }
+  const target = document.getElementById('library-counts');
+  const pathTarget = document.getElementById('library-path');
+  const summaryTarget = document.getElementById('library-result-summary');
+  const rowsTarget = document.getElementById('library-rows');
+  const paginationTarget = document.getElementById('library-pagination');
+  const controls = {
+    search: document.getElementById('library-search'), type: document.getElementById('library-type'),
+    sort: document.getElementById('library-sort'), pageSize: document.getElementById('library-page-size'),
+  };
+  const query = { page: 1, pageSize: Number(controls.pageSize.value), q: '', type: '', sort: controls.sort.value };
+  let searchTimer;
+  const load = async ({ resetPage = false, notice = false } = {}) => {
+    if (resetPage) query.page = 1;
+    target.innerHTML = '<p class="muted">正在读取活动资料目录…</p>';
+    summaryTarget.textContent = '正在更新索引…';
+    try {
+      const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize), q: query.q, type: query.type, sort: query.sort });
+      const data = await api(`/api/library/scan?${params.toString()}`);
+      query.page = data.page;
+      const c = data.counts;
+      target.innerHTML = [['PDF', c.pdf], ['CSV', c.csv], ['JSON', c.json], ['其他文件', c.other]].map(([label, value]) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+      pathTarget.innerHTML = `<strong>容器扫描路径：</strong><code>${esc(data.root)}</code>${data.hostPath ? `<br><strong>NAS 存放路径：</strong><code>${esc(data.hostPath)}</code>` : ''}`;
+      const filterText = data.filteredCount === data.entryCount ? `共 ${data.entryCount} 个文件` : `筛选结果 ${data.filteredCount} / 全部 ${data.entryCount} 个文件`;
+      summaryTarget.textContent = `${filterText} · 第 ${data.page} / ${data.pageCount} 页 · 每页 ${data.pageSize} 条`;
+      const offset = (data.page - 1) * data.pageSize;
+      rowsTarget.innerHTML = data.entries.map((entry, index) => `<tr><td class="number-col">${offset + index + 1}</td><td class="file-name">${esc(entry.fileName || entry.relativePath.split('/').pop())}</td><td class="path-cell"><code>${esc(entry.relativePath)}</code></td><td><span class="file-type">${esc(libraryTypeLabel(entry.ext))}</span></td><td>${fmtBytes(entry.bytes)}</td><td>${fmtDate(entry.modifiedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="muted empty-cell">未找到符合当前条件的文件。</td></tr>';
+      paginationTarget.innerHTML = `<button class="secondary page-button" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''}>上一页</button><span>第 <strong>${data.page}</strong> / ${data.pageCount} 页</span><button class="secondary page-button" data-page="${data.page + 1}" ${data.page >= data.pageCount ? 'disabled' : ''}>下一页</button>`;
+      paginationTarget.querySelectorAll('[data-page]').forEach((button) => button.addEventListener('click', () => { query.page = Number(button.dataset.page); load(); }));
+      if (notice) notify('资料库索引已重新扫描。');
+    } catch (error) {
+      target.innerHTML = `<p class="form-error">${esc(error.message)}</p>`;
+      summaryTarget.textContent = '索引读取失败。';
+      rowsTarget.innerHTML = '<tr><td colspan="6" class="muted empty-cell">无法读取活动资料目录。</td></tr>';
+      paginationTarget.innerHTML = '';
+    }
+  };
+  controls.search.addEventListener('input', () => { query.q = controls.search.value.trim(); clearTimeout(searchTimer); searchTimer = setTimeout(() => load({ resetPage: true }), 220); });
+  controls.type.addEventListener('change', () => { query.type = controls.type.value; load({ resetPage: true }); });
+  controls.sort.addEventListener('change', () => { query.sort = controls.sort.value; load({ resetPage: true }); });
+  controls.pageSize.addEventListener('change', () => { query.pageSize = Number(controls.pageSize.value); load({ resetPage: true }); });
+  document.getElementById('scan-library').addEventListener('click', () => load({ resetPage: false, notice: true }));
+  await load();
 }
 function approvalLabel(status) { return ({draft:'草稿',sample_verified:'样本已通过',approved:'已批准',suspended:'已暂停'})[status] || status; }
 function sourceRow(source = {}) { return `<fieldset class="source-row"><legend>资料条目</legend><label>子系列<input data-field="series" value="${esc(source.series || '')}" placeholder="例如 Aruba CX 6300" required /></label><label>覆盖型号（逗号分隔）<input data-field="modelNames" value="${esc((source.modelNames || []).join(', '))}" placeholder="例如 JL658A, JL659A" required /></label><label>官方产品页（可选）<input data-field="productPageUrl" value="${esc(source.productPageUrl || '')}" placeholder="https://官方域名/..." /></label><label>官方 PDF URL<input data-field="pdfUrl" value="${esc(source.pdfUrl || '')}" placeholder="https://官方域名/...pdf" required /></label><label>官方文件名<input data-field="officialFileName" value="${esc(source.officialFileName || '')}" placeholder="官方文件名.pdf" required /></label><label>证据规则<input data-field="evidencePolicy" value="${esc(source.evidencePolicy || 'official_datasheet')}" required /></label><button type="button" class="link-button remove-source">移除此条目</button></fieldset>`; }

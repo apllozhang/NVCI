@@ -13,6 +13,7 @@ const SESSION_SECRET = process.env.NVCI_SESSION_SECRET || 'change-me-before-prod
 const COOKIE_NAME = 'nvci_session';
 const SESSION_TTL = 1000 * 60 * 60 * 12;
 const MAX_RUNS = 100;
+const LIBRARY_HOST_PATH = process.env.NVCI_LIBRARY_HOST_PATH || '';
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
@@ -85,9 +86,46 @@ function recursiveScan(root, out = []) {
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
     const full = path.join(root, entry.name);
     if (entry.isDirectory()) recursiveScan(full, out);
-    else out.push({ relativePath: path.relative(root, full), ext: path.extname(entry.name).toLowerCase(), bytes: fs.statSync(full).size, modifiedAt: fs.statSync(full).mtime.toISOString() });
+    else {
+      const stat = fs.statSync(full);
+      out.push({ relativePath: path.relative(root, full), fileName: entry.name, ext: path.extname(entry.name).toLowerCase(), bytes: stat.size, modifiedAt: stat.mtime.toISOString() });
+    }
   }
   return out;
+}
+function textCompare(left, right) { return String(left).localeCompare(String(right), 'zh-CN', { numeric: true, sensitivity: 'base' }); }
+function libraryEntryType(entry) { return ['.pdf', '.csv', '.json'].includes(entry.ext) ? entry.ext.slice(1) : 'other'; }
+function normalizedLibraryQuery(query = {}) {
+  const pageSize = [10, 20, 50].includes(Number(query.pageSize)) ? Number(query.pageSize) : 20;
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  const sort = ['path_asc', 'path_desc', 'modified_desc', 'modified_asc', 'size_desc', 'size_asc', 'type_asc'].includes(String(query.sort)) ? String(query.sort) : 'path_asc';
+  const type = ['pdf', 'csv', 'json', 'other'].includes(String(query.type)) ? String(query.type) : '';
+  return { page, pageSize, sort, type, q: String(query.q || '').trim().slice(0, 200) };
+}
+function scanLibrary(query) {
+  const settings = readJson('settings.json', {});
+  const root = settings.libraryPath || path.join(DATA_DIR, 'library');
+  const entries = recursiveScan(root);
+  const counts = { pdf: 0, csv: 0, json: 0, other: 0, bytes: 0 };
+  for (const entry of entries) { counts.bytes += entry.bytes; counts[libraryEntryType(entry)] += 1; }
+  const filters = normalizedLibraryQuery(query);
+  const needle = filters.q.toLocaleLowerCase('zh-CN');
+  let filtered = entries.filter((entry) => (!filters.type || libraryEntryType(entry) === filters.type) && (!needle || `${entry.relativePath} ${entry.fileName} ${entry.ext}`.toLocaleLowerCase('zh-CN').includes(needle)));
+  const sorters = {
+    path_asc: (a, b) => textCompare(a.relativePath, b.relativePath),
+    path_desc: (a, b) => textCompare(b.relativePath, a.relativePath),
+    modified_desc: (a, b) => textCompare(b.modifiedAt, a.modifiedAt) || textCompare(a.relativePath, b.relativePath),
+    modified_asc: (a, b) => textCompare(a.modifiedAt, b.modifiedAt) || textCompare(a.relativePath, b.relativePath),
+    size_desc: (a, b) => b.bytes - a.bytes || textCompare(a.relativePath, b.relativePath),
+    size_asc: (a, b) => a.bytes - b.bytes || textCompare(a.relativePath, b.relativePath),
+    type_asc: (a, b) => textCompare(libraryEntryType(a), libraryEntryType(b)) || textCompare(a.relativePath, b.relativePath),
+  };
+  filtered = filtered.sort(sorters[filters.sort]);
+  const filteredCount = filtered.length;
+  const pageCount = Math.max(1, Math.ceil(filteredCount / filters.pageSize));
+  const page = Math.min(filters.page, pageCount);
+  const start = (page - 1) * filters.pageSize;
+  return { root, hostPath: LIBRARY_HOST_PATH, counts, entries: filtered.slice(start, start + filters.pageSize), entryCount: entries.length, filteredCount, page, pageSize: filters.pageSize, pageCount, sort: filters.sort, type: filters.type, q: filters.q };
 }
 function runs() { return readJson('runs.json', []); }
 function addRun(run) { const items = [run, ...runs()].slice(0, MAX_RUNS); writeJson('runs.json', items); return run; }
@@ -140,12 +178,7 @@ app.get('/api/documents', auth, (req, res) => res.json(readJson('documents.json'
 app.get('/api/runs', auth, (req, res) => res.json(runs()));
 app.get('/api/settings', auth, (req, res) => res.json(readJson('settings.json', {})));
 app.put('/api/settings', auth, (req, res) => { const setting = { ...readJson('settings.json', {}), ...req.body, updatedAt: now() }; writeJson('settings.json', setting); res.json(setting); });
-app.get('/api/library/scan', auth, (req, res) => {
-  const root = readJson('settings.json', {}).libraryPath || path.join(DATA_DIR, 'library');
-  const entries = recursiveScan(root); const counts = { pdf: 0, csv: 0, json: 0, other: 0, bytes: 0 };
-  for (const entry of entries) { counts.bytes += entry.bytes; if (entry.ext === '.pdf') counts.pdf++; else if (entry.ext === '.csv') counts.csv++; else if (entry.ext === '.json') counts.json++; else counts.other++; }
-  res.json({ root, counts, entries: entries.slice(0, 300), entryCount: entries.length });
-});
+app.get('/api/library/scan', auth, (req, res) => res.json(scanLibrary(req.query)));
 app.post('/api/import/products', auth, (req, res) => {
   const incoming = Array.isArray(req.body.records) ? req.body.records : []; if (!incoming.length) return res.status(400).json({ error: '请提交 records 数组。' });
   const products = readJson('products.json', []); let added = 0, updated = 0;
