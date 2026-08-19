@@ -1,0 +1,30 @@
+name: NVCI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Start service
+        run: |
+          NVCI_DATA_DIR=$RUNNER_TEMP/nvci-data \
+          NVCI_ADMIN_PASSWORD=local-test-password \
+          NVCI_SESSION_SECRET=local-test-session-secret-0123456789 \
+          PORT=8788 npm start > $RUNNER_TEMP/nvci.log 2>&1 &
+          echo $! > $RUNNER_TEMP/nvci.pid
+      - name: Run smoke test
+        run: node test/smoke.js
+      - name: Print service log on failure
+        if: failure()
+        run: cat $RUNNER_TEMP/nvci.log || true

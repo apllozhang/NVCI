@@ -1,0 +1,23 @@
+services:
+  nvci:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nvci-workbench:0.1.0
+    container_name: nvci-workbench
+    restart: unless-stopped
+    ports:
+      - "${NVCI_BIND_IP:-0.0.0.0}:${NVCI_PORT:-8787}:8787"
+    environment:
+      PORT: 8787
+      NVCI_DATA_DIR: /data
+      NVCI_ADMIN_PASSWORD: ${NVCI_ADMIN_PASSWORD:?请在 .env 中设置 NVCI_ADMIN_PASSWORD}
+      NVCI_SESSION_SECRET: ${NVCI_SESSION_SECRET:?请在 .env 中设置随机 NVCI_SESSION_SECRET}
+    volumes:
+      - nvci_data:/data
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  nvci_data:
+    name: nvci_data
