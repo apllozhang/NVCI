@@ -30,7 +30,25 @@ function writeTextAtomic(filePath, content) {
 }
 function hashBuffer(buffer) { return crypto.createHash('sha256').update(buffer).digest('hex'); }
 function hashFile(filePath) { return hashBuffer(fs.readFileSync(filePath)); }
+function listFilesRecursively(root, relative = '') {
+  const absolute = path.join(root, relative);
+  const files = [];
+  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
+    const child = path.join(relative, entry.name);
+    if (entry.isDirectory()) files.push(...listFilesRecursively(root, child));
+    else if (entry.isFile()) files.push(child);
+  }
+  return files;
+}
 function safeName(value) { return String(value).replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'unnamed'; }
+function safePathSegment(value) {
+  const normalized = String(value || '').trim().replace(/[\\/\0]/g, '_').replace(/[<>:"|?*]/g, '_').replace(/\s+/g, '_');
+  return normalized && normalized !== '.' && normalized !== '..' ? normalized : '未命名';
+}
+function requestHeaders(profile) {
+  const userAgent = String(profile?.collectionPolicy?.userAgent || '').trim();
+  return userAgent ? { 'User-Agent': userAgent } : {};
+}
 function escapeCsv(value) {
   const text = value === undefined || value === null ? '' : String(value);
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -214,7 +232,7 @@ function listProfiles(dataDir) {
 }
 function runId(profileId, now) { return `${safeName(profileId)}-${now.toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${crypto.randomUUID().slice(0, 8)}`; }
 function activePdfPath(libraryRoot, profile, source) {
-  return path.join(libraryRoot, ...profile.productLinePath, '01 官方彩页', safeName(source.series), source.officialFileName);
+  return path.join(libraryRoot, ...profile.productLinePath, '01 官方彩页', safePathSegment(source.series), source.officialFileName);
 }
 function activeAuditDir(libraryRoot, profile, startedAt, runIdentifier) {
   const day = startedAt.toISOString().slice(0, 10);
@@ -257,7 +275,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
     const row = { documentId: source.documentId, series: source.series, productPageUrl: source.productPageUrl, sourceUrl: source.pdfUrl, startedAt: nowIso(clock()) };
     try {
       assertAllowedUrl(source.pdfUrl, profile);
-      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl, headTimeoutMs(profile));
+      const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: requestHeaders(profile) }, profile, fetchImpl, headTimeoutMs(profile));
       const metadata = headerMetadata(head.response);
       row.finalUrl = head.finalUrl; Object.assign(row, metadata);
       if (metadata.status < 200 || metadata.status >= 400) throw new Error(`HTTP 状态异常：${metadata.status}`);
@@ -269,15 +287,14 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
       let sha256 = previous && previous.sha256 ? previous.sha256 : source.expectedSha256;
       let localRelativePath = previous && previous.localRelativePath ? previous.localRelativePath : '';
       if (needsDownload) {
-        const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: { 'User-Agent': profile.collectionPolicy.userAgent } }, profile, fetchImpl, downloadHeaderTimeoutMs(profile));
+        const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: requestHeaders(profile) }, profile, fetchImpl, downloadHeaderTimeoutMs(profile));
         if (!get.response.ok) throw new Error(`下载 HTTP 状态异常：${get.response.status}`);
         const buffer = await readResponseBuffer(get.response, profile, downloadBodyIdleTimeoutMs(profile));
         if (buffer.subarray(0, 5).toString('ascii') !== '%PDF-') throw new Error('下载内容未通过 PDF 文件签名检查');
         sha256 = hashBuffer(buffer); bytesDownloaded += buffer.length;
         const hashChanged = Boolean(previous && previous.sha256 && previous.sha256 !== sha256);
         const baselineChanged = Boolean(source.expectedSha256 && source.expectedSha256 !== sha256);
-        const storedName = `${safeName(source.series)}_${sha256.slice(0, 12)}.pdf`;
-        const immutablePath = path.join(sourcePdfDir, storedName);
+        const immutablePath = path.join(sourcePdfDir, safePathSegment(source.series), source.officialFileName);
         writeBufferAtomic(immutablePath, buffer);
         localRelativePath = path.relative(snapshotDir, immutablePath);
         const activePath = activePdfPath(paths.libraryRoot, profile, source);
@@ -306,14 +323,15 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
   writeCsv(path.join(snapshotDir, 'path_health_log.csv'), ['document_id', 'series', 'source_url', 'status', 'content_type', 'etag', 'last_modified', 'content_length', 'decision', 'error', 'checked_at'], results.map((row) => ({ document_id: row.documentId, series: row.series, source_url: row.sourceUrl, status: row.status, content_type: row.contentType || '', etag: row.etag || '', last_modified: row.lastModified || '', content_length: row.contentLength || '', decision: row.decision, error: row.error || '', checked_at: row.completedAt || '' })));
   writeCsv(path.join(snapshotDir, 'document_manifest.csv'), ['document_id', 'series', 'official_url', 'product_page_url', 'sha256', 'decision', 'status', 'snapshot_relative_path'], manifestDocuments.map((row) => ({ document_id: row.documentId, series: row.series, official_url: row.pdfUrl, product_page_url: row.productPageUrl, sha256: row.sha256, decision: row.decision, status: row.status, snapshot_relative_path: row.localRelativePath || '' })));
   writeCsv(path.join(snapshotDir, 'change_log.csv'), ['document_id', 'series', 'previous_sha256', 'current_sha256', 'active_library_path', 'detected_at'], changed.map((row) => ({ document_id: row.documentId, series: row.series, previous_sha256: row.previousSha256, current_sha256: row.currentSha256, active_library_path: row.activeLibraryPath, detected_at: nowIso(clock()) })));
-  writeCsv(path.join(snapshotDir, 'ALE_OmniSwitch_彩页记录.csv'), ['序号', '型号（系列）', '彩页文件名', '下载链接URL', '下载时间'], manifestDocuments.map((row, index) => ({ '序号': index + 1, '型号（系列）': row.series, '彩页文件名': row.officialFileName, '下载链接URL': row.pdfUrl, '下载时间': nowIso(clock()).slice(0, 10) })));
+  const fiveColumnFile = `${safePathSegment(profile.vendorName)}_${safeName(profile.productLine?.id || profile.profileId)}_彩页记录.csv`;
+  writeCsv(path.join(snapshotDir, fiveColumnFile), ['序号', '型号（系列）', '彩页文件名', '下载链接URL', '下载时间'], manifestDocuments.map((row, index) => ({ '序号': index + 1, '型号（系列）': row.series, '彩页文件名': row.officialFileName, '下载链接URL': row.pdfUrl, '下载时间': nowIso(clock()).slice(0, 10) })));
   writeCsv(path.join(snapshotDir, 'update_summary.csv'), ['snapshot_id', 'profile_id', 'outcome', 'total_sources', 'completed', 'changed', 'unchanged', 'failed', 'bytes_downloaded', 'started_at', 'completed_at'], [{ snapshot_id: identifier, profile_id: profileId, outcome, total_sources: profile.sources.length, completed: completed.length, changed: changed.length, unchanged: completed.filter((r) => r.contentDisposition === 'reused_unchanged').length, failed: failures.length, bytes_downloaded: bytesDownloaded, started_at: startedAtIso, completed_at: nowIso(clock()) }]);
   writeJsonAtomic(path.join(snapshotDir, 'run.json'), { snapshotId: identifier, profileId, startedAt: startedAtIso, completedAt: nowIso(clock()), outcome, bootstrap: !state.bootstrapComplete, force, totalSources: profile.sources.length, completed: completed.length, changed: changed.length, failures, bytesDownloaded, results });
 
-  const artifactPaths = fs.readdirSync(snapshotDir).filter((name) => fs.statSync(path.join(snapshotDir, name)).isFile() && name !== 'manifest.json');
+  const artifactPaths = listFilesRecursively(snapshotDir).filter((name) => name !== 'manifest.json');
   const manifest = { manifestSchemaVersion: '1.0', snapshotId: identifier, profileId, sourcePolicy: profile.sourcePolicy, startedAt: startedAtIso, publishedAt: nowIso(clock()), outcome, bootstrap: !state.bootstrapComplete, recordCounts: { totalSources: profile.sources.length, completed: completed.length, changed: changed.length, failures: failures.length, bytesDownloaded }, artifactHashes: artifactPaths.map((name) => ({ path: name, bytes: fs.statSync(path.join(snapshotDir, name)).size, sha256: hashFile(path.join(snapshotDir, name)) })), documents: manifestDocuments };
   writeJsonAtomic(path.join(snapshotDir, 'manifest.json'), manifest);
-  for (const name of ['path_health_log.csv', 'document_manifest.csv', 'change_log.csv', 'ALE_OmniSwitch_彩页记录.csv', 'update_summary.csv', 'run.json', 'manifest.json']) copyFileAtomic(path.join(snapshotDir, name), path.join(auditDir, name));
+  for (const name of ['path_health_log.csv', 'document_manifest.csv', 'change_log.csv', fiveColumnFile, 'update_summary.csv', 'run.json', 'manifest.json']) copyFileAtomic(path.join(snapshotDir, name), path.join(auditDir, name));
 
   const stateNext = { ...state, profileId, bootstrapComplete: failures.length === 0 && completed.length === profile.sources.length, sources: sourceState, lastRunId: identifier, lastCompletedAt: nowIso(clock()), lastOutcome: outcome, publishedSnapshots: [...(state.publishedSnapshots || []), { snapshotId: identifier, outcome, completedAt: nowIso(clock()), changed: changed.length, failures: failures.length, bootstrapPublished }].slice(-100) };
   writeJsonAtomic(paths.stateFile, stateNext);

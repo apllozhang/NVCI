@@ -23,6 +23,13 @@ async function request(url, options = {}) {
   const profile = status.data.profiles.find((item) => item.profileId === 'ale_omniswitch');
   assert.ok(profile, 'ALE OmniSwitch profile was not copied into runtime data');
   assert.equal(profile.sourceCount, 15);
+  const huaweiProfiles = status.data.profiles.filter((item) => item.vendorId === 'huawei');
+  assert.equal(huaweiProfiles.length, 7, 'all seven Huawei bundled profiles must be loaded');
+  assert.equal(huaweiProfiles.reduce((total, item) => total + item.sourceCount, 0), 42, 'Huawei bundled profiles must contain 42 verified sources');
+  for (const huaweiProfile of huaweiProfiles) {
+    assert.equal(huaweiProfile.approvalStatus, 'draft', `${huaweiProfile.profileId} must require sample verification before approval`);
+    assert.equal(huaweiProfile.enabled, false, `${huaweiProfile.profileId} must remain disabled until manually approved`);
+  }
   const queued = await request('/api/automation/profiles/ale_omniswitch/run', { method: 'POST', headers, body: '{}' });
   assert.equal(queued.response.status, 202, `queue failed: ${JSON.stringify(queued.data)}`);
   assert.equal(queued.data.status, 'queued');
