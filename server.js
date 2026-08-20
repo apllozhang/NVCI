@@ -50,7 +50,8 @@ const seedVendors = [
   { id: 'hpe', name: 'HPE Networking', products: 'Aruba CX、Aruba WLAN、Juniper EX/无线、Central/Mist', domains: ['hpe.com', 'arubanetworks.com'], primaryEvidence: 'Data sheet → Specifications → QuickSpecs', strategy: '官网数据表为主；商城页面只按固定优先级补充。', healthUrl: 'https://www.hpe.com/us/en/networking.html', status: 'verified', lastVerified: '2026-08-18' },
   { id: 'cisco', name: 'Cisco', products: '交换机、无线', domains: ['cisco.com'], primaryEvidence: 'Data sheet 页面一对一 c/dam PDF', strategy: '必须精确映射页面内对应的官方 c/dam PDF；无 PDF 时才留 HTML。', healthUrl: 'https://www.cisco.com/site/us/en/products/networking/switches/index.html', status: 'verified', lastVerified: '2026-08-18' },
   { id: 'h3c', name: '新华三 H3C', products: '交换机、无线、路由器、技术文档', domains: ['h3c.com', 'download.h3c.com'], primaryEvidence: '官方产品页、download.h3c.com PDF、文档中心', strategy: '产品树发现；使用 curl 下载；技术文档须按版本与类型分层并验证匿名公开性。', healthUrl: 'https://www.h3c.com/cn/Products_And_Solution/InterConnect/Products/Switches/', status: 'verified', lastVerified: '2026-08-18' },
-  { id: 'ruijie', name: '锐捷网络', products: '交换机、无线、云桌面、安全、路由器、软件、AI+数据', domains: ['ruijie.com.cn', 'yx.ruijie.com.cn'], primaryEvidence: '产品页资源 ID；预览/下载按钮实际 PDF', strategy: '先验证 PreviewFile；失败不得认定无资料；下载文件按钮签名 URL 需逐件、合规取得。', healthUrl: 'https://www.ruijie.com.cn/cp/', status: 'verified', lastVerified: '2026-08-19' }
+  { id: 'ruijie', name: '锐捷网络', products: '交换机、无线、云桌面、安全、路由器、软件、AI+数据', domains: ['ruijie.com.cn', 'yx.ruijie.com.cn'], primaryEvidence: '产品页资源 ID；预览/下载按钮实际 PDF', strategy: '先验证 PreviewFile；失败不得认定无资料；下载文件按钮签名 URL 需逐件、合规取得。', healthUrl: 'https://www.ruijie.com.cn/cp/', status: 'verified', lastVerified: '2026-08-19' },
+  { id: 'huawei', name: '华为企业网络', products: '园区交换机、数据中心交换机、无线、路由器、安全、网络管控与分析', domains: ['e.huawei.com', 'e-file.huawei.com'], primaryEvidence: '企业网络资料页关联的官方 PDF；五道门禁', strategy: '从企业网络入口按类别、分组、系列与官方资料页建立资料链；仅在资料页实际关联且通过 PDF 签名、SHA-256、系列/型号匹配门禁后归档。', healthUrl: 'https://e.huawei.com/cn/solutions/enterprise-network', status: 'verified', lastVerified: '2026-08-19' }
 ];
 
 const seedProducts = [
@@ -70,10 +71,18 @@ const seedDocuments = [
   { id: 'doc-h3c-s12500', vendor: 'h3c', product: 'S12500', title: '三层技术 IP 路由命令参考', source: 'H3C 文档中心', resourceId: 'R1828P04', sha256: 'local-manifest', status: 'active', collectedAt: '2026-08-18', path: '01 交换机/S12500/R1828P04/命令参考' }
 ];
 
+function mergeMissingSeedVendors() {
+  const vendors = readJson('vendor-memories.json', []);
+  const knownIds = new Set(vendors.map((vendor) => vendor.id));
+  const missing = seedVendors.filter((vendor) => !knownIds.has(vendor.id));
+  if (missing.length) writeJson('vendor-memories.json', [...vendors, ...missing]);
+}
+
 function ensureStore() {
   mkdir(DATA_DIR); mkdir(path.join(DATA_DIR, 'library')); mkdir(path.join(DATA_DIR, 'imports')); mkdir(path.join(DATA_DIR, 'exports'));
   ensureBundledProfiles(DATA_DIR);
   if (!fs.existsSync(file('vendor-memories.json'))) writeJson('vendor-memories.json', seedVendors);
+  else mergeMissingSeedVendors();
   if (!fs.existsSync(file('products.json'))) writeJson('products.json', seedProducts);
   if (!fs.existsSync(file('documents.json'))) writeJson('documents.json', seedDocuments);
   if (!fs.existsSync(file('runs.json'))) writeJson('runs.json', []);
