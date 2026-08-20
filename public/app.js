@@ -1,6 +1,6 @@
 const state = { overview: null, products: [], vendors: [], documents: [], settings: {}, runs: [] };
-const templates = { dashboard: 'dashboard-template', vendors: 'vendors-template', products: 'products-template', library: 'library-template', updates: 'updates-template', runs: 'runs-template', settings: 'settings-template' };
-const titles = { dashboard: ['OVERVIEW', '控制台'], vendors: ['SOURCE PLAYBOOK', '厂商记忆'], products: ['COLLATERAL GOVERNANCE', '产品与彩页'], library: ['ACTIVE LIBRARY', '本地资料库'], updates: ['INCREMENTAL UPDATE', '更新中心'], runs: ['AUDIT TRAIL', '任务日志'], settings: ['LOCAL ADMINISTRATION', '设置'] };
+const templates = { dashboard: 'dashboard-template', vendors: 'vendors-template', products: 'products-template', intelligence: 'intelligence-template', library: 'library-template', updates: 'updates-template', runs: 'runs-template', settings: 'settings-template' };
+const titles = { dashboard: ['OVERVIEW', '控制台'], vendors: ['SOURCE PLAYBOOK', '厂商记忆'], products: ['COLLATERAL GOVERNANCE', '产品与彩页'], intelligence: ['P0-1 INTELLIGENCE CORE', '情报核心（试点）'], library: ['ACTIVE LIBRARY', '本地资料库'], updates: ['INCREMENTAL UPDATE', '更新中心'], runs: ['AUDIT TRAIL', '任务日志'], settings: ['LOCAL ADMINISTRATION', '设置'] };
 let activeView = 'dashboard';
 
 async function api(url, options = {}) {
@@ -23,15 +23,15 @@ async function bootstrap() {
   showApp(); await refreshState(); navigate('dashboard');
 }
 async function refreshState() {
-  const [overview, vendors, products, documents, settings, runs, automation, sourceConfigs] = await Promise.all([api('/api/overview'), api('/api/vendors'), api('/api/products'), api('/api/documents'), api('/api/settings'), api('/api/runs'), api('/api/automation'), api('/api/source-configs')]);
-  Object.assign(state, { overview, vendors, products, documents, settings, runs, automation, sourceConfigs });
+  const [overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview] = await Promise.all([api('/api/overview'), api('/api/vendors'), api('/api/products'), api('/api/documents'), api('/api/settings'), api('/api/runs'), api('/api/automation'), api('/api/source-configs'), api('/api/intelligence/overview')]);
+  Object.assign(state, { overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview });
 }
 function mount(view) {
   const host = document.getElementById('content'); host.innerHTML = ''; const template = document.getElementById(templates[view]); host.appendChild(template.content.cloneNode(true));
   document.getElementById('view-kicker').textContent = titles[view][0]; document.getElementById('view-title').textContent = titles[view][1];
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.getElementById('last-run').textContent = state.runs?.[0] ? `${state.runs[0].type} · ${fmtDate(state.runs[0].createdAt)}` : '尚未执行健康检查';
-  ({ dashboard: renderDashboard, vendors: renderVendors, products: renderProducts, library: renderLibrary, updates: renderUpdates, runs: renderRuns, settings: renderSettings })[view]();
+  ({ dashboard: renderDashboard, vendors: renderVendors, products: renderProducts, intelligence: renderIntelligence, library: renderLibrary, updates: renderUpdates, runs: renderRuns, settings: renderSettings })[view]();
   host.querySelectorAll('[data-goto]').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.goto)));
 }
 function navigate(view) { activeView = view; mount(view); }
@@ -125,6 +125,56 @@ function renderUpdates() {
   document.getElementById('edit-source')?.addEventListener('click', () => { state.editSourceConfigId=selected.profileId; renderUpdates(); });
   document.getElementById('run-automation')?.addEventListener('click', async () => { try { const queued=await api(`/api/automation/profiles/${encodeURIComponent(selected.profileId)}/run`,{method:'POST',body:'{}'}); await refreshState(); renderUpdates(); notify(`已请求自动采集：${queued.id}`); } catch(error) { notify(error.message,true); } });
   document.getElementById('save-automation')?.addEventListener('click', async () => { try { await api(`/api/automation/profiles/${encodeURIComponent(selected.profileId)}`, { method:'PUT', body:JSON.stringify({ enabled:true, schedule:{ enabled:document.getElementById('automation-schedule-enabled').checked, weekday:Number(document.getElementById('automation-weekday').value), hour:Number(document.getElementById('automation-hour').value), minute:Number(document.getElementById('automation-minute').value) } }) }); await refreshState(); renderUpdates(); notify('自动计划已保存。'); } catch(error) { notify(error.message,true); } });
+}
+async function renderIntelligence() {
+  const statsTarget = document.getElementById('intelligence-stats');
+  const statusTarget = document.getElementById('intelligence-status');
+  const auditTarget = document.getElementById('intelligence-import-audit');
+  const seriesTarget = document.getElementById('intelligence-series');
+  const detailTarget = document.getElementById('intelligence-detail');
+  const previewButton = document.getElementById('preview-ale-import');
+  const executeButton = document.getElementById('execute-ale-import');
+  const exportButton = document.getElementById('export-intelligence');
+  let selectedEntityId = '';
+
+  const load = async () => {
+    try {
+      const [overview, entities, imports] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs')]);
+      state.intelligenceOverview = overview;
+      const c = overview.counts;
+      statsTarget.innerHTML = [['实体', c.entities], ['资料', c.documents], ['资料修订', c.documentRevisions], ['证据对象', c.evidence], ['字段事实', c.facts], ['导入审计', c.importRuns]].map(([label, value]) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+      const latest = overview.lastImport;
+      statusTarget.innerHTML = latest ? `<strong>最近导入：${esc(latest.status === 'completed' ? '已完成' : latest.status)}</strong><br><span class="muted">${fmtDate(latest.finished_at || latest.started_at)} · ${esc(latest.importer_name)} · ${latest.summary?.sourceCount || 0} 份受控资料</span><br><span class="small muted">数据库：${esc(overview.databasePath)}。SQLite 数据层与 PDF/manifest/来源配置隔离。</span>` : '<strong>尚未执行导入。</strong><br><span class="muted">可先预览 ALE 受控来源；执行后只会写入独立 SQLite 数据库。</span>';
+      auditTarget.innerHTML = imports.length ? imports.slice(0, 5).map(item => `<div class="run-item ${item.status === 'failed' ? 'attention' : ''}"><div class="run-title">${esc(item.importer_name)} <span class="badge ${item.status === 'completed' ? 'good' : 'warn'}">${esc(item.status)}</span></div><div class="run-meta">${fmtDate(item.finished_at || item.started_at)} · ${item.summary?.sourceCount || 0} 份资料 · 新增实体 ${item.summary?.created?.entities || 0} / 复用 ${item.summary?.reused?.entities || 0}</div></div>`).join('') : '<p class="muted">尚无情报核心导入审计。</p>';
+      seriesTarget.innerHTML = entities.length ? entities.map(entity => `<tr><td><button class="link-button intelligence-entity" data-entity-id="${esc(entity.entity_id)}">${esc(entity.canonical_name)}</button></td><td><span class="badge good">${esc(entity.source_state)}</span></td><td>${esc(entity.attributes?.evidencePolicy || '官方资料')}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">尚未导入 ALE 系列；请先执行只读导入。</td></tr>';
+      seriesTarget.querySelectorAll('.intelligence-entity').forEach((button) => button.addEventListener('click', async () => {
+        selectedEntityId = button.dataset.entityId;
+        detailTarget.innerHTML = '<p class="muted">正在读取字段事实与证据…</p>';
+        try {
+          const entity = await api(`/api/intelligence/entities/${encodeURIComponent(selectedEntityId)}`);
+          detailTarget.innerHTML = `<div class="detail"><span>系列</span><strong>${esc(entity.canonical_name)}</strong></div><div class="detail"><span>资料状态</span><strong>${esc(entity.source_state)}</strong></div>${entity.facts.map(fact => `<div class="detail"><span>${esc(fact.field_code)}</span><strong>${esc(typeof fact.value === 'string' ? fact.value : JSON.stringify(fact.value))}</strong><small class="muted">${esc(fact.document_title || '')} · SHA-256 ${esc((fact.sha256 || '').slice(0, 12))}… · ${esc(fact.locator || '')}</small>${fact.source_url ? `<a href="${esc(fact.source_url)}" target="_blank" rel="noreferrer">官方证据链接</a>` : ''}</div>`).join('')}`;
+        } catch (error) { detailTarget.innerHTML = `<p class="form-error">${esc(error.message)}</p>`; }
+      }));
+    } catch (error) {
+      statsTarget.innerHTML = `<p class="form-error">${esc(error.message)}</p>`;
+      statusTarget.textContent = '情报核心读取失败。';
+    }
+  };
+
+  exportButton.addEventListener('click', () => { window.location.href = '/api/intelligence/export'; });
+  previewButton.addEventListener('click', async () => {
+    previewButton.disabled = true; previewButton.textContent = '正在预览…';
+    try { const plan = await api('/api/intelligence/imports/ale-readonly/preview', { method: 'POST', body: '{}' }); notify(`ALE 预览完成：${plan.sourceCount} 份受控资料，${plan.invalid.length} 条不完整。未写入数据库。`); await load(); }
+    catch (error) { notify(error.message, true); }
+    finally { previewButton.disabled = false; previewButton.textContent = '预览 ALE 导入'; }
+  });
+  executeButton.addEventListener('click', async () => {
+    executeButton.disabled = true; executeButton.textContent = '正在导入…';
+    try { const result = await api('/api/intelligence/imports/ale-readonly/execute', { method: 'POST', body: '{}' }); await refreshState(); await load(); notify(`已完成 ALE 只读导入：${result.sourceCount} 份资料；未改写 PDF 或来源配置。`); }
+    catch (error) { notify(error.message, true); }
+    finally { executeButton.disabled = false; executeButton.textContent = '执行只读导入'; }
+  });
+  await load();
 }
 function renderRuns(){ document.getElementById('run-log').innerHTML=state.runs.length?state.runs.map(runMarkup).join(''):'<p class="muted">尚无任务日志。</p>'; }
 function renderSettings(){ const root=state.settings.libraryPath||'/data/library'; document.getElementById('setting-summary').innerHTML=[['服务端口',location.port||'80'],['资料库路径',root],['自动健康检查',state.settings.autoHealthCheck?'已启用':'已关闭'],['检查间隔',`${state.settings.healthIntervalHours||168} 小时`]].map(([k,v])=>`<div class="detail"><span>${k}</span><strong>${esc(v)}</strong></div>`).join(''); document.getElementById('export-state-2').addEventListener('click',exportState); }

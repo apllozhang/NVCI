@@ -4,6 +4,8 @@ const path = require('path');
 const crypto = require('crypto');
 const { ensureBundledProfiles, enqueueRun, headTimeoutMs, listProfiles, profilePaths, readProfile, safeFetch, writeJsonAtomic } = require('./automation/collector-core');
 const { assertOfficialHttps, normalizeProfileDraft, profileDetail } = require('./automation/config-schema');
+const { createIntelligenceCore } = require('./intelligence-core');
+const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('./intelligence/ale-readonly-importer');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -103,6 +105,9 @@ function ensureStore() {
   if (!fs.existsSync(file('settings.json'))) writeJson('settings.json', { libraryPath: path.join(DATA_DIR, 'library'), readOnly: false, autoHealthCheck: false, healthIntervalHours: 168, initializedAt: now() });
 }
 ensureStore();
+// P0-1 情报核心与现有 JSON 资料库并行运行。它只接收显式触发的只读导入，
+// 不修改来源配置、活动资料库、PDF、快照或既有发布记录。
+const intelligence = createIntelligenceCore(DATA_DIR);
 
 function recursiveScan(root, out = []) {
   if (!fs.existsSync(root)) return out;
@@ -200,6 +205,25 @@ app.post('/api/products/:id/confirm-no-brochure', auth, (req, res) => {
 app.get('/api/documents', auth, (req, res) => res.json(readJson('documents.json', [])));
 app.get('/api/runs', auth, (req, res) => res.json(runs()));
 app.get('/api/settings', auth, (req, res) => res.json(readJson('settings.json', {})));
+
+// P0-1 情报核心 API：仅提供查询与显式 ALE 只读导入；不替换现有资料库 API。
+app.get('/api/intelligence/overview', auth, (req, res) => res.json(intelligence.overview()));
+app.get('/api/intelligence/entities', auth, (req, res) => res.json(intelligence.listEntities({ vendorId: String(req.query.vendorId || '').slice(0, 64), entityType: String(req.query.entityType || '').slice(0, 64), q: String(req.query.q || '').slice(0, 120) })));
+app.get('/api/intelligence/entities/:entityId', auth, (req, res) => { const item = intelligence.entityDetail(req.params.entityId); if (!item) return res.status(404).json({ error: '未找到情报核心实体。' }); res.json(item); });
+app.get('/api/intelligence/documents', auth, (req, res) => res.json(intelligence.listDocuments({ vendorId: String(req.query.vendorId || '').slice(0, 64) })));
+app.get('/api/intelligence/import-runs', auth, (req, res) => res.json(intelligence.listImportRuns()));
+app.get('/api/intelligence/export', auth, (req, res) => { res.setHeader('Content-Disposition', 'attachment; filename="nvci-intelligence-export.json"'); res.json(intelligence.exportSnapshot()); });
+app.post('/api/intelligence/imports/ale-readonly/preview', auth, (req, res) => {
+  try { res.json({ mode: 'dry_run', ...planAleReadOnlyImport({ dataDir: DATA_DIR, profilePath: undefined }) }); }
+  catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/intelligence/imports/ale-readonly/execute', auth, (req, res) => {
+  try {
+    const result = executeAleReadOnlyImport({ dataDir: DATA_DIR, profilePath: undefined, actor: 'local-admin' });
+    addRun({ id: id('intelligence-import'), type: '情报核心 ALE 只读导入', status: 'completed', summary: `导入 ALE OmniSwitch 受控来源：${result.sourceCount} 份资料；仅写入 SQLite 情报核心。`, createdAt: now(), details: { importRunId: result.importRunId, summary: result.summary, databasePath: result.overview.databasePath } });
+    res.status(201).json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
 app.put('/api/settings', auth, (req, res) => { const setting = { ...readJson('settings.json', {}), ...req.body, updatedAt: now() }; writeJson('settings.json', setting); res.json(setting); });
 app.get('/api/library/scan', auth, (req, res) => res.json(scanLibrary(req.query)));
 app.post('/api/import/products', auth, (req, res) => {
