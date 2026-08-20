@@ -161,6 +161,9 @@ async function renderIntelligence() {
   const comparisonReviewFilter = document.getElementById('comparison-review-filter');
   const previewP04RelationsButton = document.getElementById('preview-p04-relations');
   const executeP04RelationsButton = document.getElementById('execute-p04-relations');
+  const p041AdvisoryStatusTarget = document.getElementById('p041-advisory-import-status');
+  const previewP041AdvisoriesButton = document.getElementById('preview-p041-advisories');
+  const executeP041AdvisoriesButton = document.getElementById('execute-p041-advisories');
   let selectedEntityId = '';
   let fieldScopeTaskId = '';
   let fieldScopeTemplateId = '';
@@ -172,6 +175,8 @@ async function renderIntelligence() {
   const reviewLabels = { candidate: '候选', review_required: '待复核', approved: '已批准', rejected: '已驳回', superseded: '已替代' };
   const relationTone = (status) => ({ direct_candidate: 'good', partial_candidate: 'good', adjacent_upgrade: 'neutral', not_comparable: 'neutral', insufficient_evidence: 'warn' }[status] || 'neutral');
   const reviewTone = (status) => ({ approved: 'good', candidate: 'neutral', review_required: 'warn', rejected: 'warn', superseded: 'neutral' }[status] || 'neutral');
+  const advisoryLabels = { retain_direct_candidate_for_human_approval: '建议保留直接候选', propose_partial_candidate: '建议降级为部分候选', propose_insufficient_evidence: '建议移至证据不足' };
+  const advisoryTone = (recommendation) => recommendation === 'retain_direct_candidate_for_human_approval' ? 'good' : 'warn';
 
   const renderComparisonDetail = async (relationshipId) => {
     comparisonDetailTarget.innerHTML = '<p class="muted">正在读取双方字段证据与关系审计…</p>';
@@ -179,8 +184,9 @@ async function renderIntelligence() {
       const item = await api(`/api/intelligence/comparisons/${encodeURIComponent(relationshipId)}`);
       const gateRows = Object.entries(item.hardGates || {}).map(([code, gate]) => `<div class="detail"><span>${esc(code)}</span><strong>${esc(gate.subject?.value ?? '未披露')} ↔ ${esc(gate.counterpart?.value ?? '未披露')}</strong><span class="badge ${gate.subject?.outcome === 'pass' ? 'good' : 'warn'}">${gate.subject?.outcome === 'pass' ? '门槛通过' : '门槛不通过'}</span><small class="muted">双方证据：${esc(gate.subject?.evidenceState || '')} / ${esc(gate.counterpart?.evidenceState || '')}${gate.subject?.reason ? ` · ${esc(gate.subject.reason)}` : ''}</small></div>`).join('');
       const evidenceRows = (item.evidence || []).map((evidence) => `<div class="detail"><span>${esc(evidence.participant_side === 'subject' ? 'ALE' : 'HPE Aruba')} · ${esc(evidence.field_code)}</span><strong>${esc(evidence.document_title || evidence.official_file_name || '官方 Data sheet')}</strong><small class="muted">SHA-256 ${esc((evidence.sha256 || '').slice(0, 12))}… · ${esc(evidence.locator || '')}</small><span>${esc(evidence.quote_text || '未提供原文摘录')}</span>${evidence.source_url ? `<a href="${esc(evidence.source_url)}" target="_blank" rel="noreferrer">官方证据链接</a>` : ''}</div>`).join('');
+      const advisoryRows = (item.advisories || []).map((advisory) => `<div class="detail"><span>P0-4.1 · ${esc(advisory.priority)}</span><strong>${esc(advisoryLabels[advisory.recommendation] || advisory.recommendation)}</strong><span class="badge ${advisoryTone(advisory.recommendation)}">${esc(advisory.advisory_state === 'active' ? '生效建议' : advisory.advisory_state)}</span><small class="muted">生产关系保持 ${esc(advisory.advisory?.productionMatchStatus || item.match_status)} / ${esc(advisory.advisory?.productionReviewState || item.review_state)}，未自动改写。</small><span>${esc(advisory.advisory?.advisoryReason || '')}</span><small class="muted">验证重点：${esc(advisory.advisory?.primaryValidationFocus || '')}</small><small class="muted">采购问题：${esc(advisory.advisory?.procurementValidationQuestions || '')}</small></div>`).join('');
       const reviewActions = ['candidate', 'review_required'].includes(item.review_state) ? `<div class="governance-actions"><button class="primary comparison-review-action" data-status="approved">批准此关系</button><button class="secondary comparison-review-action" data-status="rejected">驳回此关系</button></div>` : '';
-      comparisonDetailTarget.innerHTML = `<div class="detail"><span>关系</span><strong>${esc(item.subjectName)} ↔ ${esc(item.counterpartName)}</strong><span class="badge ${relationTone(item.match_status)}">${esc(relationLabels[item.match_status] || item.match_status)}</span><span class="badge ${reviewTone(item.review_state)}">${esc(reviewLabels[item.review_state] || item.review_state)}</span></div><div class="detail"><span>判定依据</span><strong>${esc(item.rationale || '未填写')}</strong></div><div class="detail"><span>关键偏离</span><strong>${esc(item.key_deviations || '无')}</strong></div><div class="detail"><span>不适用原因</span><strong>${esc(item.disqualification_reason || '无')}</strong></div><div class="detail"><span>采购验证问题</span><strong>${(item.validationQuestions || []).map(esc).join('；') || '无'}</strong></div><h4 class="detail-heading">首层硬门槛</h4>${gateRows || '<p class="muted">暂无硬门槛。</p>'}<h4 class="detail-heading">双方证据回链</h4>${evidenceRows || '<p class="muted">暂无证据关联。</p>'}${reviewActions}`;
+      comparisonDetailTarget.innerHTML = `<div class="detail"><span>关系</span><strong>${esc(item.subjectName)} ↔ ${esc(item.counterpartName)}</strong><span class="badge ${relationTone(item.match_status)}">${esc(relationLabels[item.match_status] || item.match_status)}</span><span class="badge ${reviewTone(item.review_state)}">${esc(reviewLabels[item.review_state] || item.review_state)}</span></div><div class="detail"><span>判定依据</span><strong>${esc(item.rationale || '未填写')}</strong></div><div class="detail"><span>关键偏离</span><strong>${esc(item.key_deviations || '无')}</strong></div><div class="detail"><span>不适用原因</span><strong>${esc(item.disqualification_reason || '无')}</strong></div><div class="detail"><span>采购验证问题</span><strong>${(item.validationQuestions || []).map(esc).join('；') || '无'}</strong></div><h4 class="detail-heading">首层硬门槛</h4>${gateRows || '<p class="muted">暂无硬门槛。</p>'}<h4 class="detail-heading">双方证据回链</h4>${evidenceRows || '<p class="muted">暂无证据关联。</p>'}<h4 class="detail-heading">P0-4.1 审阅建议</h4>${advisoryRows || '<p class="muted">尚未写入审阅建议；该状态不影响原关系，也不会自动批准。</p>'}${reviewActions}`;
       comparisonDetailTarget.querySelectorAll('.comparison-review-action').forEach((button) => button.addEventListener('click', async () => {
         const nextState = button.dataset.status;
         const reason = window.prompt(nextState === 'approved' ? '请填写批准此对标关系的依据；该记录将进入治理审计：' : '请填写驳回此对标关系的原因；该记录将进入治理审计：');
@@ -221,6 +227,7 @@ async function renderIntelligence() {
         ['部分 / 相邻升级', (comparisonMetrics.byStatus?.partial_candidate || 0) + (comparisonMetrics.byStatus?.adjacent_upgrade || 0), 'accent'],
         ['不宜 / 证据不足', (comparisonMetrics.byStatus?.not_comparable || 0) + (comparisonMetrics.byStatus?.insufficient_evidence || 0), (comparisonMetrics.byStatus?.insufficient_evidence || 0) ? 'warn' : 'accent'],
         ['关系待复核', comparisonMetrics.byReviewState?.review_required || 0, (comparisonMetrics.byReviewState?.review_required || 0) ? 'warn' : 'accent'],
+        ['P0-4.1 审阅建议', comparisonMetrics.advisories?.total || 0, (comparisonMetrics.advisories?.byRecommendation?.propose_partial_candidate || 0) ? 'warn' : 'accent'],
       ];
       comparisonMetricsTarget.innerHTML = comparisonCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div></div>`).join('');
       const hasComparisons = (comparisonMetrics.total || 0) > 0;
@@ -228,6 +235,17 @@ async function renderIntelligence() {
       comparisonImportStatusTarget.innerHTML = hasComparisons
         ? `<strong>P0-4 关系库已写入。</strong><br><span>共 ${comparisonMetrics.total} 条多对多关系；直接候选 ${comparisonMetrics.byStatus?.direct_candidate || 0}、部分候选 ${comparisonMetrics.byStatus?.partial_candidate || 0}、相邻升级 ${comparisonMetrics.byStatus?.adjacent_upgrade || 0}、不宜比较 ${comparisonMetrics.byStatus?.not_comparable || 0}、证据不足 ${comparisonMetrics.byStatus?.insufficient_evidence || 0}。只有审核状态“已批准”的关系可被用于产品定型结论。</span>`
         : '<strong>尚未导入 P0-4 关系。</strong><br><span>先预览首批 81 个基础技术型号和 1,610 条候选对；预览不会写入 SQLite。</span>';
+      const advisoryTotal = comparisonMetrics.advisories?.total || 0;
+      const retainedAdvisories = comparisonMetrics.advisories?.byRecommendation?.retain_direct_candidate_for_human_approval || 0;
+      const partialAdvisories = comparisonMetrics.advisories?.byRecommendation?.propose_partial_candidate || 0;
+      p041AdvisoryStatusTarget.className = `callout ${advisoryTotal ? (partialAdvisories ? 'attention' : 'success') : hasComparisons ? 'muted' : 'muted'}`;
+      p041AdvisoryStatusTarget.innerHTML = advisoryTotal
+        ? `<strong>P0-4.1 审阅建议已写入，生产关系未改写。</strong><br><span>共 ${advisoryTotal} 条建议：建议保留直接候选 ${retainedAdvisories} 条，建议降级为部分候选 ${partialAdvisories} 条。请在关系详情核验上行、PoE 与型号身份后，再由产品经理决定批准、驳回或维持待复核。</span>`
+        : hasComparisons
+          ? '<strong>尚未写入 P0-4.1 审阅建议。</strong><br><span>可先预览 36 条直接候选的建议分布；不会修改 P0-4 生产关系。</span>'
+          : '<strong>P0-4.1 门禁未满足。</strong><br><span>请先完成 P0-4 受控关系导入。</span>';
+      previewP041AdvisoriesButton.disabled = !hasComparisons;
+      executeP041AdvisoriesButton.disabled = !hasComparisons;
       await loadComparisonRows();
       const coverage = metrics.fieldCoverage || {};
       const metricCards = [
@@ -379,6 +397,29 @@ async function renderIntelligence() {
       notify(`P0-4 导入完成：直接 ${states.direct_candidate || 0}、部分 ${states.partial_candidate || 0}、相邻升级 ${states.adjacent_upgrade || 0}、不宜比较 ${states.not_comparable || 0}、证据不足 ${states.insufficient_evidence || 0}。`);
     } catch (error) { notify(error.message, true); }
     finally { executeP04RelationsButton.disabled = false; executeP04RelationsButton.textContent = '执行受控关系导入'; }
+  });
+  previewP041AdvisoriesButton.addEventListener('click', async () => {
+    previewP041AdvisoriesButton.disabled = true; previewP041AdvisoriesButton.textContent = '正在预览…';
+    try {
+      const plan = await api('/api/intelligence/imports/p041-direct-review-advisories/preview', { method: 'POST', body: '{}' });
+      const summary = plan.sourceDescriptor || {};
+      p041AdvisoryStatusTarget.className = 'callout success';
+      p041AdvisoryStatusTarget.innerHTML = `<strong>预览完成：未写入 SQLite。</strong><br><span>范围：${summary.advisoryCount || 0} 条直接候选；建议保留直接候选 ${summary.byRecommendation?.retain_direct_candidate_for_human_approval || 0} 条，建议降级部分候选 ${summary.byRecommendation?.propose_partial_candidate || 0} 条；P1 ${summary.byPriority?.P1 || 0} 条、P2 ${summary.byPriority?.P2 || 0} 条、P3 ${summary.byPriority?.P3 || 0} 条。</span>`;
+      notify(`P0-4.1 预览完成：${summary.advisoryCount || 0} 条建议，未改写关系。`);
+    } catch (error) { notify(error.message, true); }
+    finally { previewP041AdvisoriesButton.textContent = '预览 P0-4.1 审阅建议'; }
+  });
+  executeP041AdvisoriesButton.addEventListener('click', async () => {
+    const confirmed = window.confirm('确认将 P0-4.1 审阅建议与 P1/P2 验证问题写入独立 SQLite 表和审核队列吗？\n\n本操作不会改变 P0-4 的关系类型或审核状态，不会自动批准、驳回或替代任何型号映射。');
+    if (!confirmed) return;
+    executeP041AdvisoriesButton.disabled = true; executeP041AdvisoriesButton.textContent = '正在写入…';
+    try {
+      const result = await api('/api/intelligence/imports/p041-direct-review-advisories/execute', { method: 'POST', body: '{}' });
+      await refreshState(); await load();
+      const suggestions = result.summary?.byRecommendation || {};
+      notify(`P0-4.1 建议已写入：保留直接候选建议 ${suggestions.retain_direct_candidate_for_human_approval || 0} 条，建议部分候选 ${suggestions.propose_partial_candidate || 0} 条；生产关系未改写。`);
+    } catch (error) { notify(error.message, true); }
+    finally { executeP041AdvisoriesButton.textContent = '写入审阅建议'; }
   });
   previewButton.addEventListener('click', async () => {
     previewButton.disabled = true; previewButton.textContent = '正在预览…';

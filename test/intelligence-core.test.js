@@ -42,7 +42,7 @@ test('ALE 只读导入创建独立情报核心并保持原始资料库未写入'
     const core = createIntelligenceCore(dataDir);
     try {
       const overview = core.overview();
-      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0 });
+      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
       const series = core.listEntities({ vendorId: 'ale', entityType: 'series' });
       assert.equal(series.length, 15);
       const os6370 = series.find((item) => item.canonical_name === 'OmniSwitch 6370');
@@ -136,7 +136,7 @@ test('重复 ALE 导入只新增导入审计，不重复创建产品、资料、
     assert.deepEqual(second.summary.reused, { entities: 17, documents: 15, revisions: 15, evidence: 75, facts: 75 });
     const core = createIntelligenceCore(dataDir);
     try {
-      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0 });
+      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
       assert.equal(core.listImportRuns().length, 2);
     } finally { core.close(); }
   } finally { cleanup(dataDir); }

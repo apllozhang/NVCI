@@ -1,0 +1,776 @@
+{
+  "baseline_id": "p041-direct-candidate-advisory-2026-08-20",
+  "generated_at": "2026-08-20T08:34:08.179Z",
+  "scope": "仅审阅 P0-4 首批 36 条 direct_candidate 关系；不自动改变生产关系状态。",
+  "summary": {
+    "total": 36,
+    "byRecommendation": {
+      "retain_direct_candidate_for_human_approval": 18,
+      "propose_partial_candidate": 18
+    },
+    "byPriority": {
+      "P3": 18,
+      "P1": 9,
+      "P2": 9
+    }
+  },
+  "official_source_policy": "仅官方 Data sheet、官方 Specifications、官方 QuickSpecs、官方商城产品页和随版本发布的不可变资料快照。",
+  "advisories": [
+    {
+      "advisory_key": "p041-direct-review|rel_545f817cb78bcc7b9d045b9e",
+      "review_id": "01",
+      "relationship_id": "rel_545f817cb78bcc7b9d045b9e",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 实际下行设备的 PoE 总功耗是否在原 180W 预算内，还是需要 Aruba 的 370W 供电能力？；2. 上行接口的 1G/10G 与 1G/10G SFP 兼容性及光模块配置如何验证？；3. 环境字段的待复核状态如何通过官方部署文档进行补充核验？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_770e0c625957de6d1b4f1228",
+      "review_id": "02",
+      "relationship_id": "rel_770e0c625957de6d1b4f1228",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核实 HPE Aruba CX 6200F 24G 4SFP 的 100M/1G 上行端口是否满足项目对 10G 速率的上行需求；2. 核实两款设备在 PoE 功率预算（180W ↔ Up to 370W）下的实际供电能力是否满足终端部署要求；3. 核实园区网部署环境的实际运行参数与合规性要求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_f8c0cc1ac6c050f8af87c79e",
+      "review_id": "03",
+      "relationship_id": "rel_f8c0cc1ac6c050f8af87c79e",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 确认部署环境是否满足园区网应用场景；2. 核实370W PoE预算与上行光模块兼容性是否符合实际供电与组网需求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_2facd4568ee0632a289c5411",
+      "review_id": "04",
+      "relationship_id": "rel_2facd4568ee0632a289c5411",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 现场实际PoE供电总需求是否在180W以内或需利用370W高预算；2. 上行SFP+光模块及连接线缆是否满足实际组网带宽需求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_57dbf6e76db15d98b3bd1e9f",
+      "review_id": "05",
+      "relationship_id": "rel_57dbf6e76db15d98b3bd1e9f",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 建议向官方资料核验上行接口兼容性及光/电模块配置；2. 建议核对现场下行受电设备的实际 PoE 功耗需求是否在 180W 至 740W 预算范围内。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_a2e63f194d853afb65bb0062",
+      "review_id": "06",
+      "relationship_id": "rel_a2e63f194d853afb65bb0062",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 需核实 Aruba CX 6100 的上行模块兼容性与光/电配置是否满足现场网络拓扑要求；2. 需确认现场终端实际总功耗是否符合 Aruba CX 6100 的 370W PoE 预算（相比 ALE OS6360-P24X 的 380W 略有不同）。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_cf0ca25f112497cf24729b40",
+      "review_id": "07",
+      "relationship_id": "rel_cf0ca25f112497cf24729b40",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核验两款设备的上行链路速率与端口形态（1G/10G与100M/1G）是否满足实际组网需求；2. 核验PoE供电预算（380W与Up to 370W）在满载工况下的供电裕度；3. 核验部署环境硬门槛的官方认证状态。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_c3d1dcfe87ee4505d5609727",
+      "review_id": "08",
+      "relationship_id": "rel_c3d1dcfe87ee4505d5609727",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核实部署环境是否完全符合园区网（campus）规范要求；2. 确认设备上行 1G/10G 模块配置及 PoE 370W 预算是否满足实际供电与带宽需求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_4b68b7c120e93b245f7c034d",
+      "review_id": "09",
+      "relationship_id": "rel_4b68b7c120e93b245f7c034d",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核对两款设备在实际组网中的上行接口模块（1G/10G SFP+）兼容性；2. 确认现场实际 PoE 负载是否在双方标称预算（380W/370W）范围内。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_5483a2c773f53b42a9a75d63",
+      "review_id": "10",
+      "relationship_id": "rel_5483a2c773f53b42a9a75d63",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核验HPE Aruba CX 6200M在740W PoE预算下的电源配置及现网供电需求是否匹配；2. 核验双方设备的上行接口模块（1G/10G SFP+）兼容性及现网光模块选型。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_96eb7263606458c23026d501",
+      "review_id": "11",
+      "relationship_id": "rel_96eb7263606458c23026d501",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 48G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核验两款设备在实际园区网部署中的环境适用性；2. 确认上行 1G/10G SFP 接口的光模块兼容性；3. 核对 350W 与 370W PoE 供电预算在满载时的余量表现。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_aacaec597088e824866ba262",
+      "review_id": "12",
+      "relationship_id": "rel_aacaec597088e824866ba262",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核验 Aruba CX 6200F 48G 370W 交换机的上行 SFP 端口具体速率配置及光模块兼容性是否满足现网组网需求；2. 确认 370W PoE 预算是否完全覆盖现网设备（如 AP、IP 电话等）的供电需求；3. 最终确认部署环境（园区网环境）的官方规格与兼容性。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_6163123702f8ff94b7473420",
+      "review_id": "13",
+      "relationship_id": "rel_6163123702f8ff94b7473420",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核验Aruba CX 6200F 48G的4个SFP上行端口是否满足现场10G上联需求；2. 核验350W与740W的PoE预算差异是否适配实际终端供电负载；3. 确认部署环境是否满足相关标准。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_008a4f2e3c6833ae9d594884",
+      "review_id": "14",
+      "relationship_id": "rel_008a4f2e3c6833ae9d594884",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛核心参数完整；环境字段待复核。",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 确认部署环境的具体温湿度与防护要求是否满足设备规格；2. 验证实际业务负载下的 PoE 供电预算（350W 与 370W）是否满足供电设备需求；3. 确认上行 SFP+ 模块及光纤跳线的兼容性。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_ea3893bbc0ad2d296acd5e17",
+      "review_id": "15",
+      "relationship_id": "rel_ea3893bbc0ad2d296acd5e17",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "核心硬门槛已核验通过；环境字段待复核。",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 现场部署环境是否符合园区网（campus）应用场景规范；2. 实际接入设备的PoE总功耗是否在设备预算范围内；3. 上行10G接口及光模块配置是否与现有网络环境兼容。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_7baccab10f766c985f02bf98",
+      "review_id": "16",
+      "relationship_id": "rel_7baccab10f766c985f02bf98",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 建议向官方资料核实两款交换机的上行端口（1G/10G 与 1/10G）在实际部署中的模块兼容性与配置要求；2. 建议核实 PoE 功率预算（350W 对 370W）在实际满载供电场景下的冗余表现；3. 建议核实园区部署环境（campus）的具体环境适应性参数与实际场景是否完全契合。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_ce4cbc107f0c4ff69c0649b9",
+      "review_id": "17",
+      "relationship_id": "rel_ce4cbc107f0c4ff69c0649b9",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 建议向官方配置资料核实 HPE Aruba Networking CX 6200F 48G 的实际功耗与电源冗余配置；2. 核对实际部署环境是否符合校园网（Campus）运行规范及温湿度要求；3. 确认上行 1G/10G 模块与现有网络架构的兼容性。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_f9bcbd8395822a015f0b8208",
+      "review_id": "18",
+      "relationship_id": "rel_f9bcbd8395822a015f0b8208",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 48G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "环境硬门槛待复核；其余硬门槛证据已核验。",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 建议向官方技术资料核验环境硬门槛（部署场景）的型号级证据；2. 建议核验 PoE 预算（350W 对比 1440W）差异对实际供电与设备选型的影响。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_8a7e5f58ceadf22adbf72ada",
+      "review_id": "19",
+      "relationship_id": "rel_8a7e5f58ceadf22adbf72ada",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛基本完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 请核验 HPE Aruba 交换机 370W PoE 预算是否满足实际供电设备的功耗需求；2. 请确认上行 1G/10G SFP 接口及光模块在现场网络中的兼容性；3. 请复核园区网环境下的具体部署合规性。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_d8fac34ddfd53e5eaa106600",
+      "review_id": "20",
+      "relationship_id": "rel_d8fac34ddfd53e5eaa106600",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核对两款设备在上行端口（1G/10G与100M/1G）上的实际组网带宽需求与光模块匹配情况；2. 验证Aruba设备的Up to 370W PoE预算是否满足Alcatel-Lucent Enterprise设备的380W供电负荷；3. 确认园区网部署环境的兼容性与落地规范。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_c092a9a72cdead1baa6a2984",
+      "review_id": "21",
+      "relationship_id": "rel_c092a9a72cdead1baa6a2984",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核实两款交换机在实际高负载运行下的PoE总功率输出及供电冗余要求；2. 确认上行链路模块（1G/10G）在现网部署中的光模块兼容性及速率配置。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_516463b04b3b17f268215bf9",
+      "review_id": "22",
+      "relationship_id": "rel_516463b04b3b17f268215bf9",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 确认上行链路接口与速率（1G/10G ↔ 1/10G）的模块兼容性；2. 核实 380W 与 370W PoE 预算差异在实际满载供电下的裕度；3. 落实环境字段的官方型号级复核。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_ed12758c047b7d02c7db6c1f",
+      "review_id": "23",
+      "relationship_id": "rel_ed12758c047b7d02c7db6c1f",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "retain_direct_candidate_for_human_approval",
+      "priority": "P3",
+      "advisory_reason": "双方型号处于同一固定园区接入形态；差异须在采购验证中确认，但未发现已核验的决定性能力降档。",
+      "evidence_notes": "硬门槛完整；环境字段待复核",
+      "primary_validation_focus": "环境、PoE 负载与上行模块配置需作为最终批准前的验证条件。",
+      "procurement_validation_questions": "1. 核验两款交换机在实际组网中的上行链路接口速率与模块兼容性；2. 评估 PoE 供电预算从 380W 提升至 740W 对实际终端负载及功耗规划的影响；3. 确认设备运行环境是否符合官方规范及待复核的部署场景要求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_b047db0ebe0c48010188068a",
+      "review_id": "24",
+      "relationship_id": "rel_b047db0ebe0c48010188068a",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅，补充官方证据已明确了 ALE OmniSwitch 6560-P24X4 的形态、上行端口以及单/双 PSU 条件下的 PoE 预算（单 PSU 时 Up to 532W，双 PSU 时 Up to 1085W），但 HPE Aruba CX 6100 24G 候选型号并未在官方补证中获得对应的官方 SKU 映射，且其 370W 固定 PoE 预算与 OS6560 的条件化 PoE 预算存在差异，导致型号身份及 PoE 负载对标证据仍不完整。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 客户实际网络部署中所需的 PoE 负载功率是否在 OS6560 单 PSU 或双 PSU 配置范围内，是否与 HPE CX 6100 的 370W 预算相匹配？2. 该对标关系所指向的 HPE Aruba CX 6100 24G 候选型号能否补充并确认为具体的官方有效 SKU？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_707128ffdcb251c747512fa5",
+      "review_id": "25",
+      "relationship_id": "rel_707128ffdcb251c747512fa5",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 向官方文档核实 ALE OS6560-P24X4 的详细 PoE 预算与上行端口配置；2. 评估 HPE Aruba CX 6200F 的 100M/1G 上行及 370W PoE 供电是否满足目标场景的实际需求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_74782e63b6a619075ad86b26",
+      "review_id": "26",
+      "relationship_id": "rel_74782e63b6a619075ad86b26",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较于第一轮审阅中 PoE 预算显示为“未披露”且上行及环境参数存疑，本次补充官方证据已明确 ALE OmniSwitch 6560-P24X4 的固定形态、0°C 至 45°C 环境规格、2xSFP(1G) 及 4xSFP+ (1G/10G) 上行堆叠端口，以及 HPE Aruba CX 6200F 24G Class-4 PoE 4SFP+ 370W 对应的官方 SKU（JL725A）及其上行与 PoE 预算。然而，上行端口数量与类型结构（6个上行/堆叠端口对 4个 SFP+ 端口）及 PoE 供电冗余架构仍存在结构性差异。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 项目现场实际所需的上行带宽及堆叠需求是否能够被 JL725A 的 4 个 1/10G SFP+ 端口满足（对比 OS6560 的 2个1G SFP + 4个1G/10G SFP+ 架构）？；2. 终端设备的实际 PoE 功耗需求是否在 HPE CX 6200F 的 370W 预算范围内，还是需要评估双 PSU 冗余或更高功率型号？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_ce0a9f05b92fe3d680f24327",
+      "review_id": "27",
+      "relationship_id": "rel_ce0a9f05b92fe3d680f24327",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅，本轮已通过官方 Data sheet 补齐了 ALE OmniSwitch 6560-P24X4 的固定 1RU 形态、下行 24 端口 10/100/1G PoE+、4个 SFP+ 上行/堆叠端口以及单 PSU（最高 532W）与双 PSU（最高 1085W）的条件化 PoE 预算口径；同时补齐了 HPE Aruba CX 6200F 官方规格表中对应 SKU JL725A（24G Class4 PoE 4SFP+ 370W）的精确参数，使型号身份、端口及上行映射关系从待复核转为已核验。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 接入层终端的实际 PoE 功耗总需求是否在 HPE Aruba CX 6200F 的 370W 固定预算范围内？；2. 项目现场是否需要 OS6560 的双 PSU 高冗余及高 PoE 功率（最高 1085W）支持？；3. 4个 SFP+ 上行端口的光模块及堆叠/链路聚合组网需求是否与 CX 6200F 规格完全兼容？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_6c74f097df09eba70f72c447",
+      "review_id": "28",
+      "relationship_id": "rel_6c74f097df09eba70f72c447",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅，本轮已通过官方 Data Sheet 及 QuickSpecs 补齐了 ALE OS6560-P24X4 的固定形态、0°C至45°C环境规格以及单 PSU（最高 532W）与双 PSU（最高 1085W）的条件化 PoE 预算口径，同时核验了 HPE Aruba CX 6200M 24G Class4 PoE 4SFP+ 的官方 SKU 为 R8Q68A 及其 Max 740W 的 PoE 能力；但双方在上行端口配置（OS6560-P24X4 具备 2 个 1G SFP 和 4 个 10G SFP+ 上行/堆叠端口，而 CX 6200M R8Q68A 具备 4 个 1G/10G SFP+ 端口）上仍存在结构性差异。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 现场网络部署中，OS6560-P24X4 的 2 个 1G SFP 加 4 个 10G SFP+ 上行/堆叠端口需求，能否仅由 HPE CX 6200M 的 4 个 SFP+ 端口完全满足；2. 针对 OS6560-P24X4 在单 PSU（532W）或双 PSU（1085W）下的动态 PoE 预算，项目终端总功耗是否在 HPE CX 6200M（Max 740W）的承载范围内？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_8fbd9d20273abf097dd84f34",
+      "review_id": "29",
+      "relationship_id": "rel_8fbd9d20273abf097dd84f34",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 48G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅，官方证据已补齐 ALE OmniSwitch 6560-P48X4 的详细规格（1RU固定形态，48端口千兆PoE+下行，2个1G SFP及4个1G/10G SFP+上行/堆叠端口，920W电源基准及单/双电源PoE预算条件），同时明确了HPE Aruba CX 6100 48G 370W的基准。然而，由于OS6560-P48X4具备高带宽10G SFP+上行与大功率可扩展PoE预算（单电源815W/双电源1645W），而CX 6100定位为入门级L2交换机且仅支持1G SFP上行与固定370W PoE，两者在核心上行速率、PoE功率档位及产品定位上存在不可忽视的档次差异，无法实现严格的一对一直接替代。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 实际业务部署中，接入层是否必须具备 10G SFP+ 上行及堆叠能力以匹配 OS6560-P48X4 的组网架构；2. 终端 PoE 设备的实际总功耗是否在 CX 6100 的 370W 固定预算之内，或者是否需要 OS6560 在双 PSU 下高达 1645W 的大功率供电支持；3. 目标网络环境是否允许将具备较高层级路由与汇聚能力的 OS6560 降级替换为入门级 L2 的 CX 6100 交换机。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_b5502519cc31fab83f577c69",
+      "review_id": "30",
+      "relationship_id": "rel_b5502519cc31fab83f577c69",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 请核验 ALE OS6560-P48X4 的具体 PoE 功率预算及技术规格；2. 请核验两款设备在 10G/1G 上行接口及速率上的差异是否满足项目实际组网需求。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_7a2bfc54e562e259838424b9",
+      "review_id": "31",
+      "relationship_id": "rel_7a2bfc54e562e259838424b9",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 官方技术白皮书或彩页是否已明确 OS6560-P48X4 的 PoE 预算？；2. 部署环境硬门槛是否已完成可重放的官方证据复核？；3. Aruba 交换机的 100M/1G 上行及 740W PoE 预算是否满足实际组网需求？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_978873bf0b31e1eeb41fbcc3",
+      "review_id": "32",
+      "relationship_id": "rel_978873bf0b31e1eeb41fbcc3",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅时 PoE 预算未披露、上行与环境待复核的状态，补充官方证据已明确 OS6560-P48X4 具备 48 个 10/100/1G PoE+ 下行端口、2 个 1G SFP 及 4 个 1/10G SFP+ 上行/堆叠端口、920W 交流电源以及 0°C 至 45°C 的环境规格；同时，HPE Aruba 候选型号已成功映射至官方 SKU JL727A（CX 6200F 48G Class4 PoE 4SFP+ 370W Switch）。然而，两者在 PoE 功率配置（OS6560 单/双 PSU 提供 815W 至 1645W 远高于 HPE 的固定 370W）以及上行端口数量与类型上存在显著差异。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 项目现场终端设备的 PoE 功耗需求是否在 HPE CX 6200F 的 370W 预算范围内，还是需要 OS6560-P48X4 的高功率（815W/1645W）及双电源冗余支持；2. 核心网络架构对上行端口的配置要求（即 OS6560 的 2个1G SFP + 4个10G SFP+ 混合上行/堆叠能力与 HPE CX 6200F 的 4个 SFP+ 上行端口）是否满足业务冗余和组网规划。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_794bbc226275856f08a3b074",
+      "review_id": "33",
+      "relationship_id": "rel_794bbc226275856f08a3b074",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P1",
+      "advisory_reason": "HPE 官方 QuickSpecs 将该商业 SKU 定义为 4x 100M/1G SFP；ALE 侧候选具有 1G/10G SFP+ 上行或堆叠能力。上行速率能力已出现可核验的降档，不应保持无条件直接候选。",
+      "evidence_notes": "HPE 4SFP 商业 SKU 的身份和 100M/1G 上行能力已由官方 QuickSpecs 核验；该项不是资料缺失，而是已验证的能力偏离。",
+      "primary_validation_focus": "需以项目上行带宽和光模块速率确认是否可接受 100M/1G SFP；若要求 10G，上述关系不得批准为直接映射。",
+      "procurement_validation_questions": "1. 核实OS6560-P48X4与HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 740W Switch的上行端口规格及光模块兼容性；2. 确认OS6560-P48X4的实际POE总预算是否满足现场部署需求以对标740W；3. 补充环境硬门槛的可重放官方型号级证据以完成合规性复核。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_09dea82a341655b74ebb1e98",
+      "review_id": "34",
+      "relationship_id": "rel_09dea82a341655b74ebb1e98",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 370W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较第一轮审阅，本轮已通过官方 Data Sheet 与 QuickSpecs 补齐了 ALE OmniSwitch 6560-P48X4 的形态、端口、上行及电源矩阵证据，明确了单/双 PSU 下的 PoE 预算条件；同时将 HPE Aruba CX 6200F 48G 370W 候选精确映射至官方 SKU JL727A，消除了此前 PoE 预算未披露与型号身份模糊的不确定性。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 现网实际 PoE+ 终端的功耗总需求是否在 HPE Aruba CX 6200F 370W（JL727A）的预算范围内，若超过 370W 是否需要调整选型为 740W 型号（如 JL728A）；2. 上行链路所需的 1G/10G 混合光模块及接口数量是否完全契合 HPE 6200F 的 4x 1/10G SFP+ 端口配置。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_3a59f83dec31ebc590702d37",
+      "review_id": "35",
+      "relationship_id": "rel_3a59f83dec31ebc590702d37",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 740W Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较于第一轮审阅，本轮补齐了 ALE OmniSwitch 6560 系列型号 OS6560-P48X4 的官方 Data Sheet 证据，明确其具备 48 个 10/100/1GBase-T PoE+ 下行端口、2xSFP(1G) 及 4xSFP+ (1G/10G) 上行/堆叠端口、1RU 固定形态、0°C 至 45°C 工作温度，以及单 PSU（Up to 815W）与双 PSU（Up to 1645W）条件下的 PoE 预算；同时补齐了 HPE Aruba CX 6200F 48G Class4 PoE 4SFP+ 740W Switch 的官方规格与官方 SKU（JL728A），确认其具备 48 个下行端口、4x 1/10G SFP+ 上行端口及 Up to 740W PoE 预算。型号身份实现了一对一精确映射，上行端口与条件化 PoE 预算差异已具备完整官方证据链支持。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 现场组网中上行链路是否必须同时利用 1G SFP 与 10G SFP+ 端口（OS6560-P48X4 提供 2xSFP 及 4xSFP+，而 CX 6200F JL728A 仅提供 4x SFP+ 端口）；2. 终端设备的 PoE 总功率需求是否在 HPE CX 6200F 的固定 740W 预算范围内，或者是否需要利用 OS6560 的双 PSU 配置（最高 1645W）来满足高功耗物联网部署场景。",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    },
+    {
+      "advisory_key": "p041-direct-review|rel_454e53ea52ef20810670b74a",
+      "review_id": "36",
+      "relationship_id": "rel_454e53ea52ef20810670b74a",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 48G Class4 PoE 4SFP+ Switch",
+      "production_match_status": "direct_candidate",
+      "production_review_state": "review_required",
+      "advisory_recommendation": "propose_partial_candidate",
+      "priority": "P2",
+      "advisory_reason": "ALE OS6560 的 2x1G SFP + 4x1G/10G SFP+ 上行/堆叠结构及单/双 PSU 条件化 PoE 预算，与对方四端口上行和固定/模块化供电架构不完全等效。",
+      "evidence_notes": "相较于第一轮审阅中 PoE 预算显示为未披露的状态，本轮补充了官方权威数据：OS6560-P48X4 在配置单电源（920W AC）时 PoE 预算可达 815W、双电源时可达 1645W，而 HPE Aruba CX 6200M 48G 官方对应 SKU R8Q70A 的最大 PoE 预算为 1440W，双方在形态、48端口下行、上行及电源条件上均已通过官方技术文档和规格表完全补齐并核验。",
+      "primary_validation_focus": "必须确认项目所需上行端口数量、10G 端口数、堆叠拓扑、PoE 总负载和电源冗余；不得将 OS6560 的双 PSU 最大预算当作基础型号的无条件预算。",
+      "procurement_validation_questions": "1. 部署现场的终端 PoE 接入总功率需求是否在单电源 815W 以内，还是需要配置双电源以满足高功率 PoE 负载需求？2. 上行链路的 SFP/SFP+ 模块与堆叠配置是否已完全对齐双方的物理接口规范？",
+      "source_set": [
+        "p04-direct-candidate-inputs.json",
+        "p041-direct-candidate-review-register.json",
+        "P041_SUPPLEMENTAL_OFFICIAL_EVIDENCE.md"
+      ],
+      "approval_gate": "仅产品经理可在 NVCI 关系详情中批准、驳回或继续保持待复核；本建议包不修改 comparison_relationships 的 match_status 或 review_state。"
+    }
+  ]
+}

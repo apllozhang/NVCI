@@ -8,8 +8,10 @@ const { createIntelligenceCore } = require('./intelligence-core');
 const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('./intelligence/ale-readonly-importer');
 const { planImport: planAleFieldFactImport, executeImport: executeAleFieldFactImport } = require('./intelligence/import-ale-field-facts');
 const { planImport: planP04PilotRelationImport, executeImport: executeP04PilotRelationImport } = require('./intelligence/import-p04-pilot-relations');
+const { planImport: planP041ReviewAdvisoryImport, executeImport: executeP041ReviewAdvisoryImport } = require('./intelligence/import-p041-review-advisories');
 const ALE_FIELD_FACT_AUDIT_PATH = path.join(__dirname, 'intelligence', 'baselines', 'ale-field-facts-audit-2026-08-20.json');
 const P04_PILOT_RELATION_AUDIT_PATH = path.join(__dirname, 'intelligence', 'baselines', 'p04-pilot-input-audit.json');
+const P041_DIRECT_REVIEW_ADVISORY_PATH = path.join(__dirname, 'intelligence', 'baselines', 'p041-direct-candidate-advisories.json');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -287,12 +289,26 @@ app.post('/api/intelligence/imports/ale-field-facts/execute', auth, (req, res) =
 // P0-4：对标关系只接受随版本发布的审计基线；客户端不能指定路径或上传推导结果。
 app.get('/api/intelligence/comparisons/metrics', auth, (req, res) => res.json(intelligence.comparisonRelationshipMetrics(String(req.query.taskId || '').slice(0, 128))));
 app.get('/api/intelligence/comparisons', auth, (req, res) => res.json(intelligence.listComparisonRelationships({ taskId: String(req.query.taskId || '').slice(0, 128), matchStatus: String(req.query.matchStatus || '').slice(0, 64), reviewState: String(req.query.reviewState || '').slice(0, 64), q: String(req.query.q || '').slice(0, 120), limit: Number(req.query.limit || 200) })));
+app.get('/api/intelligence/comparisons/advisories', auth, (req, res) => res.json(intelligence.listComparisonRelationshipAdvisories({ taskId: String(req.query.taskId || '').slice(0, 128), recommendation: String(req.query.recommendation || '').slice(0, 80), priority: String(req.query.priority || '').slice(0, 8), advisoryState: String(req.query.advisoryState || '').slice(0, 32), limit: Number(req.query.limit || 200) })));
 app.get('/api/intelligence/comparisons/:relationshipId', auth, (req, res) => { const item = intelligence.comparisonRelationshipDetail(req.params.relationshipId); if (!item) return res.status(404).json({ error: '未找到对标关系。' }); res.json(item); });
 app.patch('/api/intelligence/comparisons/:relationshipId/review', auth, (req, res) => {
   try {
     const result = intelligence.updateComparisonRelationshipReview(req.params.relationshipId, { reviewState: String(req.body?.reviewState || '').slice(0, 64), reason: String(req.body?.reason || '').slice(0, 2000), actor: 'local-admin' });
     addRun({ id: id('p04-relation-review'), type: 'P0-4 型号级对标关系审核', status: 'completed', summary: `已将对标关系更新为 ${result.review_state}。`, createdAt: now(), details: { relationshipId: result.relationship_id, reviewState: result.review_state } });
     res.json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+// P0-4.1：审阅建议只绑定既有关系并生成验证问题；它绝不改变关系状态，也不会自动批准任何型号映射。
+app.post('/api/intelligence/imports/p041-direct-review-advisories/preview', auth, (req, res) => {
+  try { res.json({ mode: 'dry_run', ...planP041ReviewAdvisoryImport({ dataDir: DATA_DIR, baselinePath: P041_DIRECT_REVIEW_ADVISORY_PATH }) }); }
+  catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/intelligence/imports/p041-direct-review-advisories/execute', auth, (req, res) => {
+  try {
+    const result = executeP041ReviewAdvisoryImport({ dataDir: DATA_DIR, baselinePath: P041_DIRECT_REVIEW_ADVISORY_PATH, actor: 'local-admin' });
+    const recommendations = result.summary?.byRecommendation || {};
+    addRun({ id: id('p041-advisory-import'), type: 'P0-4.1 直接候选审阅建议导入', status: 'completed', summary: `已写入 ${result.summary?.created?.advisories || 0} 条审阅建议；建议保持直接候选 ${recommendations.retain_direct_candidate_for_human_approval || 0}、建议降级部分候选 ${recommendations.propose_partial_candidate || 0}；生产关系状态未改写。`, createdAt: now(), details: { importRunId: result.importRunId, summary: result.summary, relationshipMetrics: result.relationshipMetrics } });
+    res.status(201).json(result);
   } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
 });
 app.post('/api/intelligence/imports/p04-pilot-relations/preview', auth, (req, res) => {

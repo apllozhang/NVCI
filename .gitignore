@@ -31,3 +31,11 @@ nas-deploy/
 /.test-p04-relations/
 /.test-p04-ui-data/
 .test-p04-ui.log
+
+# P0-4.1 local advisory verification artifacts
+/.test-p041-core/
+/.test-p041-output/
+/.test-p041-api-data/
+/.test-p041-api-output/
+/.test-p041-ui-data/
+.test-p041-ui.log

@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const { createFieldScopeManager } = require('./intelligence/field-scope');
 
-const SCHEMA_VERSION = 'p0-4.0';
+const SCHEMA_VERSION = 'p0-4.1';
 
 function timestamp() { return new Date().toISOString(); }
 function json(value) { return JSON.stringify(value ?? {}); }
@@ -225,6 +225,23 @@ function createIntelligenceCore(dataDir) {
       FOREIGN KEY(evidence_id) REFERENCES evidence(evidence_id)
     );
     CREATE INDEX IF NOT EXISTS idx_comparison_relation_evidence ON comparison_relationship_evidence(relationship_id, participant_side);
+    CREATE TABLE IF NOT EXISTS comparison_relationship_advisories (
+      advisory_id TEXT PRIMARY KEY,
+      natural_key TEXT NOT NULL UNIQUE,
+      relationship_id TEXT NOT NULL,
+      task_id TEXT,
+      advisory_type TEXT NOT NULL,
+      recommendation TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'P3',
+      advisory_state TEXT NOT NULL DEFAULT 'active',
+      advisory_json TEXT NOT NULL DEFAULT '{}',
+      source_descriptor_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(relationship_id) REFERENCES comparison_relationships(relationship_id),
+      FOREIGN KEY(task_id) REFERENCES research_tasks(task_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_comparison_advisories_relation ON comparison_relationship_advisories(relationship_id, priority, advisory_state);
   `);
 
   db.prepare(`INSERT INTO schema_meta(meta_key, meta_value, updated_at) VALUES (?, ?, ?)
@@ -511,6 +528,55 @@ function createIntelligenceCore(dataDir) {
     return { ...record, existed: false };
   }
 
+  function relationshipAdvisoryRow(row) {
+    return row ? { ...row, advisory: parseJson(row.advisory_json), sourceDescriptor: parseJson(row.source_descriptor_json) } : null;
+  }
+
+  function upsertComparisonRelationshipAdvisory(input) {
+    const allowedRecommendation = new Set(['retain_direct_candidate_for_human_approval', 'propose_partial_candidate', 'propose_insufficient_evidence']);
+    const allowedPriority = new Set(['P1', 'P2', 'P3']);
+    const allowedState = new Set(['active', 'superseded', 'archived']);
+    if (!allowedRecommendation.has(input.recommendation)) throw new Error('对标审阅建议类型不合法。');
+    if (!allowedPriority.has(input.priority || 'P3')) throw new Error('对标审阅建议优先级不合法。');
+    if (!allowedState.has(input.advisoryState || 'active')) throw new Error('对标审阅建议状态不合法。');
+    const relationship = db.prepare('SELECT relationship_id FROM comparison_relationships WHERE relationship_id = ?').get(input.relationshipId);
+    if (!relationship) throw new Error('审阅建议必须关联现有对标关系。');
+    const naturalKey = input.naturalKey || `${input.advisoryType || 'manual'}|${input.relationshipId}`;
+    const existing = db.prepare('SELECT * FROM comparison_relationship_advisories WHERE natural_key = ?').get(naturalKey);
+    const record = {
+      advisory_id: existing?.advisory_id || stableId('reladv', naturalKey), natural_key: naturalKey,
+      relationship_id: input.relationshipId, task_id: input.taskId || null, advisory_type: input.advisoryType || 'manual',
+      recommendation: input.recommendation, priority: input.priority || 'P3', advisory_state: input.advisoryState || 'active',
+      advisory_json: json(input.advisory || {}), source_descriptor_json: json(input.sourceDescriptor || {}),
+      created_at: existing?.created_at || timestamp(), updated_at: timestamp(),
+    };
+    if (existing) {
+      db.prepare(`UPDATE comparison_relationship_advisories SET relationship_id = ?, task_id = ?, advisory_type = ?, recommendation = ?, priority = ?, advisory_state = ?, advisory_json = ?, source_descriptor_json = ?, updated_at = ? WHERE advisory_id = ?`)
+        .run(record.relationship_id, record.task_id, record.advisory_type, record.recommendation, record.priority, record.advisory_state, record.advisory_json, record.source_descriptor_json, record.updated_at, record.advisory_id);
+    } else {
+      db.prepare(`INSERT INTO comparison_relationship_advisories(advisory_id, natural_key, relationship_id, task_id, advisory_type, recommendation, priority, advisory_state, advisory_json, source_descriptor_json, created_at, updated_at)
+        VALUES (@advisory_id, @natural_key, @relationship_id, @task_id, @advisory_type, @recommendation, @priority, @advisory_state, @advisory_json, @source_descriptor_json, @created_at, @updated_at)`).run(record);
+    }
+    auditGovernance({ actor: input.actor || 'local-admin', action: 'comparison_relationship_advisory_upsert', objectType: 'comparison_relationship_advisory', objectId: record.advisory_id, before: relationshipAdvisoryRow(existing), after: relationshipAdvisoryRow(record), reason: '写入审阅建议，不改变对标关系的审核状态。' });
+    return { ...relationshipAdvisoryRow(record), existed: Boolean(existing) };
+  }
+
+  function listComparisonRelationshipAdvisories(filters = {}) {
+    const clauses = []; const params = [];
+    if (filters.relationshipId) { clauses.push('a.relationship_id = ?'); params.push(filters.relationshipId); }
+    if (filters.taskId) { clauses.push('a.task_id = ?'); params.push(filters.taskId); }
+    if (filters.recommendation) { clauses.push('a.recommendation = ?'); params.push(filters.recommendation); }
+    if (filters.priority) { clauses.push('a.priority = ?'); params.push(filters.priority); }
+    if (filters.advisoryState) { clauses.push('a.advisory_state = ?'); params.push(filters.advisoryState); }
+    const limit = Math.min(Math.max(Number(filters.limit) || 200, 1), 500);
+    const sql = `SELECT a.*, s.canonical_name AS subject_name, c.canonical_name AS counterpart_name
+      FROM comparison_relationship_advisories a JOIN comparison_relationships r ON r.relationship_id = a.relationship_id
+      JOIN entities s ON s.entity_id = r.subject_entity_id JOIN entities c ON c.entity_id = r.counterpart_entity_id
+      ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''}
+      ORDER BY CASE a.priority WHEN 'P1' THEN 0 WHEN 'P2' THEN 1 ELSE 2 END, a.updated_at DESC LIMIT ${limit}`;
+    return db.prepare(sql).all(...params).map((row) => ({ ...relationshipAdvisoryRow(row), subjectName: row.subject_name, counterpartName: row.counterpart_name }));
+  }
+
   function listComparisonRelationships(filters = {}) {
     const clauses = []; const params = [];
     if (filters.taskId) { clauses.push('r.task_id = ?'); params.push(filters.taskId); }
@@ -532,7 +598,8 @@ function createIntelligenceCore(dataDir) {
     const evidence = db.prepare(`SELECT re.*, e.source_url, e.quote_text, e.locator, e.evidence_scope, e.evidence_status, d.title AS document_title, d.canonical_url, rev.sha256, rev.official_file_name
       FROM comparison_relationship_evidence re JOIN evidence e ON e.evidence_id = re.evidence_id JOIN document_revisions rev ON rev.revision_id = e.revision_id JOIN documents d ON d.document_id = rev.document_id
       WHERE re.relationship_id = ? ORDER BY re.participant_side, re.evidence_role, re.field_code`).all(relationshipId);
-    return { ...relationshipRow(row), subjectName: row.subject_name, subjectVendorId: row.subject_vendor_id, counterpartName: row.counterpart_name, counterpartVendorId: row.counterpart_vendor_id, evidence };
+    const advisories = listComparisonRelationshipAdvisories({ relationshipId });
+    return { ...relationshipRow(row), subjectName: row.subject_name, subjectVendorId: row.subject_vendor_id, counterpartName: row.counterpart_name, counterpartVendorId: row.counterpart_vendor_id, evidence, advisories };
   }
 
   function updateComparisonRelationshipReview(relationshipId, input = {}) {
@@ -556,7 +623,10 @@ function createIntelligenceCore(dataDir) {
     const byReviewState = Object.fromEntries(db.prepare(`SELECT review_state AS key, COUNT(*) AS count FROM comparison_relationships ${where} GROUP BY review_state`).all(...params).map((row) => [row.key, row.count]));
     const total = Object.values(byStatus).reduce((sum, value) => sum + value, 0);
     const evidenceLinks = db.prepare(`SELECT COUNT(*) AS count FROM comparison_relationship_evidence ${taskId ? 'WHERE relationship_id IN (SELECT relationship_id FROM comparison_relationships WHERE task_id = ?)' : ''}`).get(...params).count;
-    return { total, byStatus, byReviewState, evidenceLinks };
+    const advisoryRows = db.prepare(`SELECT recommendation AS key, COUNT(*) AS count FROM comparison_relationship_advisories ${taskId ? 'WHERE task_id = ?' : ''} GROUP BY recommendation`).all(...params);
+    const advisoryByRecommendation = Object.fromEntries(advisoryRows.map((row) => [row.key, row.count]));
+    const advisoryTotal = Object.values(advisoryByRecommendation).reduce((sum, value) => sum + value, 0);
+    return { total, byStatus, byReviewState, evidenceLinks, advisories: { total: advisoryTotal, byRecommendation: advisoryByRecommendation } };
   }
 
   const fieldScopes = createFieldScopeManager({ db, stableId, timestamp, json, parseJson, auditGovernance, upsertReviewItem });
@@ -675,7 +745,7 @@ function createIntelligenceCore(dataDir) {
     return {
       schemaVersion: SCHEMA_VERSION,
       databasePath: dbPath,
-      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items'), comparisonRelationships: count('comparison_relationships'), comparisonRelationshipEvidence: count('comparison_relationship_evidence'), fieldTemplates: count('field_templates'), taskFieldPacks: count('task_field_packs') },
+      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items'), comparisonRelationships: count('comparison_relationships'), comparisonRelationshipEvidence: count('comparison_relationship_evidence'), comparisonRelationshipAdvisories: count('comparison_relationship_advisories'), fieldTemplates: count('field_templates'), taskFieldPacks: count('task_field_packs') },
       entitiesByType: byType,
       factsByPublicationState: byState,
       lastImport: lastImport ? { ...lastImport, sourceDescriptor: parseJson(lastImport.source_descriptor_json), summary: parseJson(lastImport.summary_json) } : null,
@@ -735,6 +805,7 @@ function createIntelligenceCore(dataDir) {
       governanceAudit: rows('governance_audit').map((row) => ({ ...row, before: parseJson(row.before_json), after: parseJson(row.after_json) })),
       comparisonRelationships: rows('comparison_relationships').map(relationshipRow),
       comparisonRelationshipEvidence: rows('comparison_relationship_evidence'),
+      comparisonRelationshipAdvisories: rows('comparison_relationship_advisories').map(relationshipAdvisoryRow),
       comparisonRelationshipMetrics: comparisonRelationshipMetrics(),
       governanceMetrics: governanceMetrics(),
       ...fieldScopes.snapshotTables(),
@@ -769,6 +840,8 @@ function createIntelligenceCore(dataDir) {
     listComparisonRelationships,
     comparisonRelationshipDetail,
     updateComparisonRelationshipReview,
+    upsertComparisonRelationshipAdvisory,
+    listComparisonRelationshipAdvisories,
     comparisonRelationshipMetrics,
     governanceMetrics,
     listFieldTemplates: fieldScopes.listFieldTemplates,

@@ -1,0 +1,3896 @@
+{
+  "generated_at": "2026-08-20T08:15:04.041Z",
+  "source_audit": "p04-pilot-input-audit.json",
+  "input_count": 36,
+  "review_policy": "仅形成审阅建议；不得自动批准、驳回或修改生产数据库中的对标关系。",
+  "inputs": [
+    {
+      "review_id": "01",
+      "relationship_id": "rel_545f817cb78bcc7b9d045b9e",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：180W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "02",
+      "relationship_id": "rel_770e0c625957de6d1b4f1228",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：180W ↔ Up to 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "03",
+      "relationship_id": "rel_f8c0cc1ac6c050f8af87c79e",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：180W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "04",
+      "relationship_id": "rel_2facd4568ee0632a289c5411",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：180W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "05",
+      "relationship_id": "rel_57dbf6e76db15d98b3bd1e9f",
+      "ale_model": "OS6360-P24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：180W ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "06",
+      "relationship_id": "rel_a2e63f194d853afb65bb0062",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "07",
+      "relationship_id": "rel_cf0ca25f112497cf24729b40",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：380W ↔ Up to 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "08",
+      "relationship_id": "rel_c3d1dcfe87ee4505d5609727",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "09",
+      "relationship_id": "rel_4b68b7c120e93b245f7c034d",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "10",
+      "relationship_id": "rel_5483a2c773f53b42a9a75d63",
+      "ale_model": "OS6360-P24X",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "11",
+      "relationship_id": "rel_96eb7263606458c23026d501",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 48G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：350W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "12",
+      "relationship_id": "rel_aacaec597088e824866ba262",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：350W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "13",
+      "relationship_id": "rel_6163123702f8ff94b7473420",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：350W ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "14",
+      "relationship_id": "rel_008a4f2e3c6833ae9d594884",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G (SFP+)；PoE 预算：350W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "15",
+      "relationship_id": "rel_ea3893bbc0ad2d296acd5e17",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G (SFP+)；PoE 预算：350W ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "16",
+      "relationship_id": "rel_7baccab10f766c985f02bf98",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：350W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "17",
+      "relationship_id": "rel_ce4cbc107f0c4ff69c0649b9",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：350W ↔ Up to 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "18",
+      "relationship_id": "rel_f9bcbd8395822a015f0b8208",
+      "ale_model": "OS6360-P48",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 48G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：350W ↔ 1440W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "19",
+      "relationship_id": "rel_8a7e5f58ceadf22adbf72ada",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "20",
+      "relationship_id": "rel_d8fac34ddfd53e5eaa106600",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：380W ↔ Up to 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "21",
+      "relationship_id": "rel_c092a9a72cdead1baa6a2984",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "22",
+      "relationship_id": "rel_516463b04b3b17f268215bf9",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "23",
+      "relationship_id": "rel_ed12758c047b7d02c7db6c1f",
+      "ale_model": "OS6360-PH24",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：380W ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "24",
+      "relationship_id": "rel_b047db0ebe0c48010188068a",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "25",
+      "relationship_id": "rel_707128ffdcb251c747512fa5",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：未披露 ↔ Up to 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "26",
+      "relationship_id": "rel_74782e63b6a619075ad86b26",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "27",
+      "relationship_id": "rel_ce0a9f05b92fe3d680f24327",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 24G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "28",
+      "relationship_id": "rel_6c74f097df09eba70f72c447",
+      "ale_model": "OS6560-P24X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 24G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 24,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "29",
+      "relationship_id": "rel_8fbd9d20273abf097dd84f34",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6100 48G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1G/10G SFP；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "30",
+      "relationship_id": "rel_b5502519cc31fab83f577c69",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "31",
+      "relationship_id": "rel_7a2bfc54e562e259838424b9",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 100M/1G；PoE 预算：未披露 ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "32",
+      "relationship_id": "rel_978873bf0b31e1eeb41fbcc3",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G (SFP+)；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "33",
+      "relationship_id": "rel_794bbc226275856f08a3b074",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class-4 PoE 4SFP+ 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G (SFP+)；PoE 预算：未披露 ↔ 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "34",
+      "relationship_id": "rel_09dea82a341655b74ebb1e98",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 370W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ 370W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "35",
+      "relationship_id": "rel_3a59f83dec31ebc590702d37",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200F 48G Class4 PoE 4SFP+ 740W Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ Up to 740W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    },
+    {
+      "review_id": "36",
+      "relationship_id": "rel_454e53ea52ef20810670b74a",
+      "ale_model": "OS6560-P48X4",
+      "hpe_aruba_model": "HPE Aruba Networking CX 6200M 48G Class4 PoE 4SFP+ Switch",
+      "relationship_status": "direct_candidate",
+      "review_status": "review_required",
+      "key_deviations": "上联：1G/10G ↔ 1/10G；PoE 预算：未披露 ↔ 1440W",
+      "hard_gates": {
+        "form_factor": {
+          "subject": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "fixed",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "environment": {
+          "subject": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "campus",
+            "evidenceState": "needs_review",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": false
+        },
+        "downlink_media": {
+          "subject": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "copper",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_port_count": {
+          "subject": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": 48,
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "downlink_speed_band": {
+          "subject": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": [
+              "1G",
+              "100M"
+            ],
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        },
+        "poe_support": {
+          "subject": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "counterpart": {
+            "value": "poe",
+            "evidenceState": "evidence_verified",
+            "outcome": "pass",
+            "reason": ""
+          },
+          "verified": true
+        }
+      },
+      "evidence_count": 12
+    }
+  ]
+}
