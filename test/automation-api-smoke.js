@@ -51,10 +51,16 @@ async function request(url, options = {}) {
     assert.equal(huaweiProfile.approvalStatus, 'draft', `${huaweiProfile.profileId} must require sample verification before approval`);
     assert.equal(huaweiProfile.enabled, false, `${huaweiProfile.profileId} must remain disabled until manually approved`);
   }
-  const extremeProfile = status.data.profiles.find((item) => item.profileId === 'extreme_4000_series');
-  assert.ok(extremeProfile, 'Extreme 4000 Series bundled profile must be loaded');
-  assert.equal(extremeProfile.sourceCount, 1, 'Extreme pilot must contain the verified 4000 Series Data Sheet');
-  assert.equal(extremeProfile.approvalStatus, 'draft'); assert.equal(extremeProfile.enabled, false);
+  const extremeProfiles = status.data.profiles.filter((item) => item.vendorId === 'extreme');
+  assert.equal(extremeProfiles.length, 3, 'Extreme must load three product-domain bundled profiles');
+  assert.equal(extremeProfiles.reduce((total, item) => total + item.sourceCount, 0), 48, 'Extreme must contain all Drive-verified Data Sheets');
+  const extremeExpectedCounts = { extreme_wired_access_datasheets: 23, extreme_wireless_access_datasheets: 13, extreme_management_datasheets: 12 };
+  for (const [profileId, sourceCount] of Object.entries(extremeExpectedCounts)) {
+    const extremeProfile = extremeProfiles.find((item) => item.profileId === profileId);
+    assert.ok(extremeProfile, `${profileId} must be loaded`);
+    assert.equal(extremeProfile.sourceCount, sourceCount, `${profileId} source count mismatch`);
+    assert.equal(extremeProfile.approvalStatus, 'draft'); assert.equal(extremeProfile.enabled, false);
+  }
   const controlledVendorIds = ['ale', 'hpe', 'cisco', 'h3c', 'ruijie', 'huawei', 'extreme'];
   for (const vendorId of controlledVendorIds) {
     const vendorProfiles = status.data.profiles.filter((item) => item.vendorId === vendorId);

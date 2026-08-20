@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const RUNS = '/home/ubuntu/runs';
 const OUT = path.join(ROOT, 'automation', 'bundled-profiles');
-const REVISION = '2026-08-20-six-vendor-controlled-v1';
+const REVISION = '2026-08-20-seven-vendor-controlled-v2';
 
 function parseCsv(file) {
   const text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
@@ -93,6 +93,28 @@ function buildH3c() {
   }));
 }
 
+function buildExtreme() {
+  const manifestPath = path.join(RUNS, 'extreme-networks-2026-08-20', 'extreme_public_brochures_2026-08-20_v1', 'document_manifest.json');
+  const documents = JSON.parse(fs.readFileSync(manifestPath, 'utf8')).documents
+    .filter((row) => row.retrievalStatus === 'official_pdf_verified' && row.sha256 && row.pdfUrl && row.productPageUrl);
+  const domainMeta = {
+    'Wired Access': { id: 'wired_access', name: '01 Wired Access', category: '交换机', policy: '仅采集 Extreme 官方产品目录发现、精确系列页明确关联的 Sitecore Content Hub Data Sheet；先验证产品页关联、PDF 可读性、系列适用范围与 SHA-256。' },
+    'Wireless Access': { id: 'wireless_access', name: '02 Wireless Access', category: '无线接入点', policy: '仅采集 Extreme 官方产品目录发现、精确 AP 系列页明确关联的 Sitecore Content Hub Data Sheet；不猜测 Content Hub 文件名或版本参数。' },
+    'Management': { id: 'management', name: '03 Management', category: '网络管理与分析', policy: '仅采集 Extreme 官方管理产品页明确关联的公开 Data Sheet；无公开 PDF 的产品保留 needs_route_validation，不进入队列。' },
+  };
+  return Object.entries(domainMeta).map(([domain, meta]) => {
+    const rows = documents.filter((row) => row.productDomain === domain);
+    return profile({
+      profileId: `extreme_${meta.id}_datasheets`, vendorId: 'extreme', vendorName: 'Extreme Networks', displayName: `Extreme ${meta.name}｜已验证官方 Data Sheet`,
+      domains: ['www.extremenetworks.com', 'extremenetworks.com', 'extr-p-001.sitecorecontenthub.cloud'], productLine: meta.name, libraryRoot: 'Extreme Networks产品彩页', subseries: `Extreme ${meta.category}已验证 Data Sheet`, policy: meta.policy,
+      sources: rows.map((row, index) => source({
+        id: `extreme_${meta.id}_${String(index + 1).padStart(2, '0')}`, series: row.series, modelNames: [row.series], productPageUrl: row.productPageUrl, materialPageUrl: row.materialPageUrl || row.productPageUrl,
+        pdfUrl: row.pdfUrl, officialFileName: row.officialFileName, expectedSha256: row.sha256, evidencePolicy: 'extreme_product_page_to_sitecore_content_hub_datasheet', matchTerms: [...new Set([row.series, row.officialFileName.replace(/\\.pdf$/i, ''), row.pdfTitle].filter(Boolean))],
+      })),
+    });
+  });
+}
+
 function buildRuijie() {
   const rows = parseCsv(path.join(RUNS, 'vertical-ruijie-public-pdf-preview-patch-2026-08-18/document_manifest.csv')).filter((row) => row.public_access_status === 'public_anonymous_pdf_preview' && row.mime_type === 'application/pdf' && row.retrieval_status === 'downloaded' && row.official_preview_url && row.sha256);
   return chunks(rows).map((group, part) => profile({
@@ -102,6 +124,6 @@ function buildRuijie() {
   }));
 }
 
-const profiles = [...buildHpe(), ...buildCisco(), ...buildH3c(), ...buildRuijie()];
+const profiles = [...buildHpe(), ...buildCisco(), ...buildH3c(), ...buildRuijie(), ...buildExtreme()];
 writeProfiles(profiles);
 console.log(JSON.stringify({ revision: REVISION, count: profiles.length, profiles: profiles.map((item) => ({ profileId: item.profileId, vendorId: item.vendorId, sourceCount: item.sources.length })) }, null, 2));
