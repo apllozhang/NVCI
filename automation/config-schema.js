@@ -37,6 +37,10 @@ function normalizeDomains(value) {
   }
   return [...new Set(domains)];
 }
+function optionalDomains(value) {
+  if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) return [];
+  return normalizeDomains(value);
+}
 function assertOfficialHttps(urlValue, domains, label) {
   let url;
   try { url = new URL(String(urlValue || '')); } catch { throw new Error(`${label}不是有效 URL。`); }
@@ -53,16 +57,20 @@ function sourceFrom(raw, index, profileId, domains, subseriesName) {
   const series = text(raw.series || subseriesName, `第 ${index + 1} 条资料的子系列`, 1, 120);
   const pdfUrl = assertOfficialHttps(raw.pdfUrl, domains, `第 ${index + 1} 条资料 PDF URL`);
   const productPageUrl = raw.productPageUrl ? assertOfficialHttps(raw.productPageUrl, domains, `第 ${index + 1} 条资料产品页 URL`) : '';
+  const materialPageUrl = raw.materialPageUrl ? assertOfficialHttps(raw.materialPageUrl, domains, `第 ${index + 1} 条资料页 URL`) : '';
   const officialFileName = safeFileName(raw.officialFileName, `${slugFrom(series, `series_${index + 1}`)}.pdf`);
+  const matchTerms = stringArray(raw.matchTerms === undefined ? [series, ...modelNames] : raw.matchTerms, `第 ${index + 1} 条资料匹配词`, 40);
   return {
     documentId: safeId(raw.documentId || `${profileId}_${index + 1}`, '资料条目标识'),
     series,
     modelNames,
     productPageUrl,
+    materialPageUrl,
     pdfUrl,
     officialFileName,
+    matchTerms,
     evidencePolicy: text(raw.evidencePolicy || 'official_datasheet', `第 ${index + 1} 条资料证据规则`, 3, 160),
-    expectedSha256: '',
+    expectedSha256: text(raw.expectedSha256 || '', `第 ${index + 1} 条资料 SHA-256`, 0, 128),
   };
 }
 function normalizeProfileDraft(raw, existing = null) {
@@ -79,6 +87,7 @@ function normalizeProfileDraft(raw, existing = null) {
   };
   const profileId = safeId(raw.profileId || existing?.profileId || `${vendorId}_${productLine.id}_${subseries.id}`, '来源配置标识');
   const domains = normalizeDomains(raw.officialDomains || existing?.officialDomains);
+  const trustedRedirectDomains = optionalDomains(raw.trustedRedirectDomains === undefined ? existing?.trustedRedirectDomains : raw.trustedRedirectDomains);
   const sourceInput = raw.sources === undefined && existing ? existing.sources : raw.sources;
   if (!Array.isArray(sourceInput) || !sourceInput.length || sourceInput.length > 50) throw new Error('资料条目必须为 1–50 条。');
   const sources = sourceInput.map((source, index) => sourceFrom(source, index, profileId, domains, subseries.name));
@@ -87,7 +96,7 @@ function normalizeProfileDraft(raw, existing = null) {
     schemaVersion: '2.0', profileId, vendorId, vendorName,
     displayName: text(raw.displayName || existing?.displayName || `${vendorName} ${subseries.name} 官方资料`, '配置显示名称', 1, 160),
     approvalStatus: 'draft', sampleCheck: null, enabled: false,
-    mode: 'public_official_pdf_incremental', officialDomains: domains,
+    mode: 'public_official_pdf_incremental', officialDomains: domains, trustedRedirectDomains,
     sourcePolicy: text(raw.sourcePolicy || existing?.sourcePolicy || '仅采集已登记的公开官方 PDF；产品页用于发现，资料事实以声明的证据规则为准。', '来源策略', 3, 500),
     evidencePolicy: text(raw.evidencePolicy || existing?.evidencePolicy || 'official_datasheet', '默认证据规则', 3, 160),
     productLine, subseries,
@@ -101,7 +110,7 @@ function normalizeProfileDraft(raw, existing = null) {
 function profileDetail(profile, state = {}) {
   return {
     profileId: profile.profileId, displayName: profile.displayName, vendorId: profile.vendorId, vendorName: profile.vendorName || profile.vendorId,
-    approvalStatus: profile.approvalStatus || 'approved', enabled: Boolean(profile.enabled), officialDomains: profile.officialDomains || [],
+    approvalStatus: profile.approvalStatus || 'approved', enabled: Boolean(profile.enabled), officialDomains: profile.officialDomains || [], trustedRedirectDomains: profile.trustedRedirectDomains || [],
     productLine: profile.productLine || { id: 'legacy', name: profile.productLinePath?.[1] || '未分类', libraryRootName: profile.productLinePath?.[0] || '' },
     subseries: profile.subseries || { id: 'legacy', name: profile.displayName }, sourcePolicy: profile.sourcePolicy || '', evidencePolicy: profile.evidencePolicy || '',
     sourceCount: profile.sources?.length || 0, modelCount: new Set((profile.sources || []).flatMap(source => source.modelNames || [])).size,

@@ -78,11 +78,53 @@ function sameMetadata(previous, current) {
     && previous.contentType === current.contentType
     && previous.status === current.status;
 }
-function assertAllowedUrl(rawUrl, profile) {
+class GateError extends Error {
+  constructor(decision, message) { super(message); this.decision = decision; }
+}
+
+const GATE_SCHEMA_VERSION = '2';
+
+function assertAllowedUrl(rawUrl, profile, allowTrustedRedirect = false) {
   const url = new URL(rawUrl);
-  if (url.protocol !== 'https:') throw new Error(`仅允许 HTTPS 来源：${rawUrl}`);
-  if (!profile.officialDomains.includes(url.hostname)) throw new Error(`来源域名不在白名单：${url.hostname}`);
+  if (url.protocol !== 'https:') throw new GateError('needs_route_validation', `仅允许 HTTPS 来源：${rawUrl}`);
+  const official = profile.officialDomains || [];
+  const trustedRedirects = profile.trustedRedirectDomains || [];
+  const allowed = official.includes(url.hostname) || (allowTrustedRedirect && trustedRedirects.includes(url.hostname));
+  if (!allowed) throw new GateError('needs_route_validation', `来源域名不在官方域名或受控重定向白名单：${url.hostname}`);
   return url;
+}
+
+function compactMatchText(value) {
+  return String(value || '').normalize('NFKD').toLocaleLowerCase('zh-CN').replace(/[\s_./\\\\()（）\[\]{}-]+/gu, '');
+}
+
+function sourceMatchTerms(source) {
+  const rawTerms = Array.isArray(source.matchTerms) && source.matchTerms.length
+    ? source.matchTerms
+    : [source.series, ...(source.modelNames || [])];
+  return [...new Set(rawTerms.flatMap((term) => String(term || '').split(/[\\/|,，;；]+/)).map(compactMatchText).filter((term) => term.length >= 3))];
+}
+
+function inspectPdf(buffer) {
+  if (buffer.subarray(0, 5).toString('ascii') !== '%PDF-') throw new GateError('non_pdf_response', '下载内容未通过 PDF 文件签名检查');
+  const tail = buffer.subarray(Math.max(0, buffer.length - 4096)).toString('latin1');
+  if (!tail.includes('%%EOF')) throw new GateError('parse_failed', 'PDF 缺少结束标记，无法通过基础可读性检查');
+  const text = buffer.toString('latin1');
+  const pageObjects = (text.match(/\/Type\s*\/Page\b/g) || []).length;
+  const pageTreeCount = Number((text.match(/\/Count\s+(\d+)/) || [])[1] || 0);
+  const pageCount = pageObjects || pageTreeCount;
+  if (pageCount < 1) throw new GateError('parse_failed', 'PDF 未识别到页面对象或页树计数，无法通过基础可读性检查');
+  const title = (text.match(/\/Title\s*\(([^)]{1,240})\)/) || [])[1] || '';
+  return { pageCount, title };
+}
+
+function assertSourceApplicability(source, inspection) {
+  const terms = sourceMatchTerms(source);
+  if (!terms.length) throw new GateError('applicability_needs_review', '来源未声明可用于匹配的系列或型号');
+  const candidate = [source.officialFileName, source.pdfUrl, source.materialPageUrl, inspection.title].map(compactMatchText).join(' ');
+  const matchTerm = terms.find((term) => candidate.includes(term));
+  if (!matchTerm) throw new GateError('source_series_mismatch', `官方文件名、资料链或 PDF 标题未匹配声明系列/型号：${source.series}`);
+  return { matchTerm };
 }
 function boundedTimeout(value, fallback, maximum = 300000) {
   const configured = Number(value || fallback);
@@ -119,7 +161,7 @@ async function safeFetch(rawUrl, options, profile, fetchImpl = fetch, timeoutMs 
     if (![301, 302, 303, 307, 308].includes(response.status)) return { response, finalUrl: current, redirectCount };
     const location = response.headers.get('location');
     if (!location) throw new Error(`重定向缺少 Location：${current}`);
-    current = assertAllowedUrl(new URL(location, current).toString(), profile).toString();
+    current = assertAllowedUrl(new URL(location, current).toString(), profile, true).toString();
   }
   throw new Error(`重定向次数超过限制：${rawUrl}`);
 }
@@ -268,21 +310,23 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
   createStatus(dataDir, { profiles: { [profileId]: { state: 'running', runId: identifier, startedAt: startedAtIso, displayName: profile.displayName } } });
   writeJsonAtomic(path.join(snapshotDir, 'scope.json'), {
     snapshotId: identifier, profileId, startedAt: startedAtIso, mode: profile.mode, sourcePolicy: profile.sourcePolicy,
-    officialDomains: profile.officialDomains, sourceCount: profile.sources.length, bootstrap: !state.bootstrapComplete, force,
+    officialDomains: profile.officialDomains, trustedRedirectDomains: profile.trustedRedirectDomains || [], sourceCount: profile.sources.length, bootstrap: !state.bootstrapComplete, force,
   });
 
   for (const source of profile.sources.slice(0, profile.collectionPolicy.maxDocumentsPerRun)) {
-    const row = { documentId: source.documentId, series: source.series, productPageUrl: source.productPageUrl, sourceUrl: source.pdfUrl, startedAt: nowIso(clock()) };
+          const row = { documentId: source.documentId, series: source.series, productPageUrl: source.productPageUrl, materialPageUrl: source.materialPageUrl || '', sourceUrl: source.pdfUrl, startedAt: nowIso(clock()), gateSchemaVersion: GATE_SCHEMA_VERSION };
+
     try {
       assertAllowedUrl(source.pdfUrl, profile);
       const head = await safeFetch(source.pdfUrl, { method: 'HEAD', headers: requestHeaders(profile) }, profile, fetchImpl, headTimeoutMs(profile));
       const metadata = headerMetadata(head.response);
       row.finalUrl = head.finalUrl; Object.assign(row, metadata);
-      if (metadata.status < 200 || metadata.status >= 400) throw new Error(`HTTP 状态异常：${metadata.status}`);
-      if (!metadata.contentType.toLowerCase().includes('pdf')) throw new Error(`Content-Type 不是 PDF：${metadata.contentType || 'empty'}`);
-      if (metadata.contentLength > profile.collectionPolicy.maxPdfBytes) throw new Error(`文件超过限制：${metadata.contentLength} bytes`);
+      if (metadata.status < 200 || metadata.status >= 400) throw new GateError('source_unavailable', `HTTP 状态异常：${metadata.status}`);
+      const declaredType = metadata.contentType.toLowerCase();
+      if (declaredType && !declaredType.includes('pdf') && !declaredType.includes('octet-stream')) throw new GateError('non_pdf_response', `Content-Type 不是 PDF：${metadata.contentType}`);
+      if (metadata.contentLength > profile.collectionPolicy.maxPdfBytes) throw new GateError('restricted_excluded', `文件超过限制：${metadata.contentLength} bytes`);
       const previous = sourceState[source.documentId];
-      const needsDownload = force || !sameMetadata(previous, metadata);
+      const needsDownload = force || !sameMetadata(previous, metadata) || previous?.gateSchemaVersion !== GATE_SCHEMA_VERSION;
       row.decision = needsDownload ? 'download_candidate' : 'reuse_unchanged';
       let sha256 = previous && previous.sha256 ? previous.sha256 : source.expectedSha256;
       let localRelativePath = previous && previous.localRelativePath ? previous.localRelativePath : '';
@@ -290,7 +334,9 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
         const get = await safeFetch(source.pdfUrl, { method: 'GET', headers: requestHeaders(profile) }, profile, fetchImpl, downloadHeaderTimeoutMs(profile));
         if (!get.response.ok) throw new Error(`下载 HTTP 状态异常：${get.response.status}`);
         const buffer = await readResponseBuffer(get.response, profile, downloadBodyIdleTimeoutMs(profile));
-        if (buffer.subarray(0, 5).toString('ascii') !== '%PDF-') throw new Error('下载内容未通过 PDF 文件签名检查');
+        const inspection = inspectPdf(buffer);
+        const applicability = assertSourceApplicability(source, inspection);
+        row.pdfPageCount = inspection.pageCount; row.pdfTitle = inspection.title; row.matchTerm = applicability.matchTerm;
         sha256 = hashBuffer(buffer); bytesDownloaded += buffer.length;
         const hashChanged = Boolean(previous && previous.sha256 && previous.sha256 !== sha256);
         const baselineChanged = Boolean(source.expectedSha256 && source.expectedSha256 !== sha256);
@@ -306,11 +352,11 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
         row.sha256 = sha256; row.contentDisposition = 'reused_unchanged'; row.localRelativePath = localRelativePath;
       }
       row.status = 'completed'; row.completedAt = nowIso(clock());
-      sourceState[source.documentId] = { ...metadata, sha256, localRelativePath, verifiedAt: row.completedAt, sourceUrl: source.pdfUrl, series: source.series };
-      manifestDocuments.push({ ...source, sha256, localRelativePath, decision: row.decision, status: row.status });
+      sourceState[source.documentId] = { ...metadata, sha256, localRelativePath, verifiedAt: row.completedAt, sourceUrl: source.pdfUrl, series: source.series, gateSchemaVersion: GATE_SCHEMA_VERSION, pdfPageCount: row.pdfPageCount || previous?.pdfPageCount || 0, pdfTitle: row.pdfTitle || previous?.pdfTitle || '', matchTerm: row.matchTerm || previous?.matchTerm || '' };
+      manifestDocuments.push({ ...source, sha256, localRelativePath, decision: row.decision, status: row.status, pdfPageCount: row.pdfPageCount || previous?.pdfPageCount || 0, pdfTitle: row.pdfTitle || previous?.pdfTitle || '', matchTerm: row.matchTerm || previous?.matchTerm || '', gateSchemaVersion: GATE_SCHEMA_VERSION });
     } catch (error) {
-      row.status = 'failed'; row.decision = 'needs_route_validation'; row.error = String(error.message || error); row.completedAt = nowIso(clock());
-      failures.push({ documentId: source.documentId, series: source.series, sourceUrl: source.pdfUrl, error: row.error });
+      row.status = 'failed'; row.decision = error?.decision || 'needs_route_validation'; row.error = String(error.message || error); row.completedAt = nowIso(clock());
+      failures.push({ documentId: source.documentId, series: source.series, sourceUrl: source.pdfUrl, decision: row.decision, error: row.error });
     }
     results.push(row);
   }
@@ -320,7 +366,7 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
   const outcome = failures.length ? 'attention' : (bootstrapPublished ? 'initial_mirror_published' : (changed.length ? 'changes_published' : 'no_change'));
   const auditDir = activeAuditDir(paths.libraryRoot, profile, startedAt, identifier);
   ensureDir(auditDir);
-  writeCsv(path.join(snapshotDir, 'path_health_log.csv'), ['document_id', 'series', 'source_url', 'status', 'content_type', 'etag', 'last_modified', 'content_length', 'decision', 'error', 'checked_at'], results.map((row) => ({ document_id: row.documentId, series: row.series, source_url: row.sourceUrl, status: row.status, content_type: row.contentType || '', etag: row.etag || '', last_modified: row.lastModified || '', content_length: row.contentLength || '', decision: row.decision, error: row.error || '', checked_at: row.completedAt || '' })));
+  writeCsv(path.join(snapshotDir, 'path_health_log.csv'), ['document_id', 'series', 'source_url', 'status', 'content_type', 'etag', 'last_modified', 'content_length', 'decision', 'pdf_page_count', 'match_term', 'error', 'checked_at'], results.map((row) => ({ document_id: row.documentId, series: row.series, source_url: row.sourceUrl, status: row.status, content_type: row.contentType || '', etag: row.etag || '', last_modified: row.lastModified || '', content_length: row.contentLength || '', decision: row.decision, pdf_page_count: row.pdfPageCount || '', match_term: row.matchTerm || '', error: row.error || '', checked_at: row.completedAt || '' })));
   writeCsv(path.join(snapshotDir, 'document_manifest.csv'), ['document_id', 'series', 'official_url', 'product_page_url', 'sha256', 'decision', 'status', 'snapshot_relative_path'], manifestDocuments.map((row) => ({ document_id: row.documentId, series: row.series, official_url: row.pdfUrl, product_page_url: row.productPageUrl, sha256: row.sha256, decision: row.decision, status: row.status, snapshot_relative_path: row.localRelativePath || '' })));
   writeCsv(path.join(snapshotDir, 'change_log.csv'), ['document_id', 'series', 'previous_sha256', 'current_sha256', 'active_library_path', 'detected_at'], changed.map((row) => ({ document_id: row.documentId, series: row.series, previous_sha256: row.previousSha256, current_sha256: row.currentSha256, active_library_path: row.activeLibraryPath, detected_at: nowIso(clock()) })));
   const fiveColumnFile = `${safePathSegment(profile.vendorName)}_${safeName(profile.productLine?.id || profile.profileId)}_彩页记录.csv`;

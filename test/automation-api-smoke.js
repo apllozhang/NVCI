@@ -51,6 +51,17 @@ async function request(url, options = {}) {
     assert.equal(huaweiProfile.approvalStatus, 'draft', `${huaweiProfile.profileId} must require sample verification before approval`);
     assert.equal(huaweiProfile.enabled, false, `${huaweiProfile.profileId} must remain disabled until manually approved`);
   }
+  const controlledVendorIds = ['ale', 'hpe', 'cisco', 'h3c', 'ruijie', 'huawei'];
+  for (const vendorId of controlledVendorIds) {
+    const vendorProfiles = status.data.profiles.filter((item) => item.vendorId === vendorId);
+    assert.ok(vendorProfiles.length > 0, `${vendorId} must have at least one controlled source profile`);
+    if (vendorId !== 'ale') {
+      for (const vendorProfile of vendorProfiles) {
+        assert.equal(vendorProfile.approvalStatus, 'draft', `${vendorProfile.profileId} must require sample verification before approval`);
+        assert.equal(vendorProfile.enabled, false, `${vendorProfile.profileId} must remain disabled until manually approved`);
+      }
+    }
+  }
   const queued = await request('/api/automation/profiles/ale_omniswitch/run', { method: 'POST', headers, body: '{}' });
   assert.equal(queued.response.status, 202, `queue failed: ${JSON.stringify(queued.data)}`);
   assert.equal(queued.data.status, 'queued');
@@ -64,5 +75,5 @@ async function request(url, options = {}) {
   assert.ok(list.data.some((item) => item.profileId === created.data.profileId && item.subseries.name === 'Campus 1000'));
   const blocked = await request(`/api/automation/profiles/${created.data.profileId}/run`, { method:'POST', headers, body:'{}' });
   assert.equal(blocked.response.status, 400, 'unapproved source config must not be queued');
-  console.log(JSON.stringify({ profileId: profile.profileId, sourceCount: profile.sourceCount, queuedRequest: queued.data.id, draftProfile: created.data.profileId, draftModels: created.data.modelCount }));
+  console.log(JSON.stringify({ profileId: profile.profileId, sourceCount: profile.sourceCount, controlledVendors: controlledVendorIds, queuedRequest: queued.data.id, draftProfile: created.data.profileId, draftModels: created.data.modelCount }));
 })().catch((error) => { console.error(error.stack || error); process.exit(1); });
