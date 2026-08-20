@@ -7,7 +7,9 @@ const { assertOfficialHttps, normalizeProfileDraft, profileDetail } = require('.
 const { createIntelligenceCore } = require('./intelligence-core');
 const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('./intelligence/ale-readonly-importer');
 const { planImport: planAleFieldFactImport, executeImport: executeAleFieldFactImport } = require('./intelligence/import-ale-field-facts');
+const { planImport: planP04PilotRelationImport, executeImport: executeP04PilotRelationImport } = require('./intelligence/import-p04-pilot-relations');
 const ALE_FIELD_FACT_AUDIT_PATH = path.join(__dirname, 'intelligence', 'baselines', 'ale-field-facts-audit-2026-08-20.json');
+const P04_PILOT_RELATION_AUDIT_PATH = path.join(__dirname, 'intelligence', 'baselines', 'p04-pilot-input-audit.json');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -279,6 +281,29 @@ app.post('/api/intelligence/imports/ale-field-facts/execute', auth, (req, res) =
       createdAt: now(),
       details: { importRunId: result.importRunId, summary: result.summary, metrics: result.metrics },
     });
+    res.status(201).json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+// P0-4：对标关系只接受随版本发布的审计基线；客户端不能指定路径或上传推导结果。
+app.get('/api/intelligence/comparisons/metrics', auth, (req, res) => res.json(intelligence.comparisonRelationshipMetrics(String(req.query.taskId || '').slice(0, 128))));
+app.get('/api/intelligence/comparisons', auth, (req, res) => res.json(intelligence.listComparisonRelationships({ taskId: String(req.query.taskId || '').slice(0, 128), matchStatus: String(req.query.matchStatus || '').slice(0, 64), reviewState: String(req.query.reviewState || '').slice(0, 64), q: String(req.query.q || '').slice(0, 120), limit: Number(req.query.limit || 200) })));
+app.get('/api/intelligence/comparisons/:relationshipId', auth, (req, res) => { const item = intelligence.comparisonRelationshipDetail(req.params.relationshipId); if (!item) return res.status(404).json({ error: '未找到对标关系。' }); res.json(item); });
+app.patch('/api/intelligence/comparisons/:relationshipId/review', auth, (req, res) => {
+  try {
+    const result = intelligence.updateComparisonRelationshipReview(req.params.relationshipId, { reviewState: String(req.body?.reviewState || '').slice(0, 64), reason: String(req.body?.reason || '').slice(0, 2000), actor: 'local-admin' });
+    addRun({ id: id('p04-relation-review'), type: 'P0-4 型号级对标关系审核', status: 'completed', summary: `已将对标关系更新为 ${result.review_state}。`, createdAt: now(), details: { relationshipId: result.relationship_id, reviewState: result.review_state } });
+    res.json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/intelligence/imports/p04-pilot-relations/preview', auth, (req, res) => {
+  try { res.json({ mode: 'dry_run', ...planP04PilotRelationImport({ dataDir: DATA_DIR, auditPath: P04_PILOT_RELATION_AUDIT_PATH }) }); }
+  catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/intelligence/imports/p04-pilot-relations/execute', auth, (req, res) => {
+  try {
+    const result = executeP04PilotRelationImport({ dataDir: DATA_DIR, auditPath: P04_PILOT_RELATION_AUDIT_PATH, actor: 'local-admin' });
+    const states = result.summary?.relationshipStates || {};
+    addRun({ id: id('p04-relation-import'), type: 'P0-4 受控型号级对标关系导入', status: 'completed', summary: `已写入 ${result.summary?.created?.relationships || 0} 条关系；直接候选 ${states.direct_candidate || 0}、部分候选 ${states.partial_candidate || 0}、相邻升级 ${states.adjacent_upgrade || 0}、不宜比较 ${states.not_comparable || 0}、证据不足 ${states.insufficient_evidence || 0}。`, createdAt: now(), details: { importRunId: result.importRunId, summary: result.summary, relationshipMetrics: result.relationshipMetrics } });
     res.status(201).json(result);
   } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
 });

@@ -22,3 +22,12 @@ nas-deploy/
 /.test-p03-api-output/
 /.test-p03-field-import/
 /.visual-field-feedback/
+
+# P0-4 local verification artifacts
+/.test-p04-api-data/
+/.test-p04-api-output/
+/.test-p04-core/
+/.test-p04-output/
+/.test-p04-relations/
+/.test-p04-ui-data/
+.test-p04-ui.log

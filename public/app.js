@@ -151,14 +151,62 @@ async function renderIntelligence() {
   const previewAleFieldFactsButton = document.getElementById('preview-ale-field-facts');
   const executeAleFieldFactsButton = document.getElementById('execute-ale-field-facts');
   const aleFieldFactImportStatusTarget = document.getElementById('ale-field-fact-import-status');
+  const comparisonMetricsTarget = document.getElementById('comparison-metrics');
+  const comparisonImportStatusTarget = document.getElementById('p04-relation-import-status');
+  const comparisonRowsTarget = document.getElementById('comparison-rows');
+  const comparisonDetailTarget = document.getElementById('comparison-detail');
+  const comparisonSummaryTarget = document.getElementById('comparison-result-summary');
+  const comparisonSearchInput = document.getElementById('comparison-search');
+  const comparisonStatusFilter = document.getElementById('comparison-status-filter');
+  const comparisonReviewFilter = document.getElementById('comparison-review-filter');
+  const previewP04RelationsButton = document.getElementById('preview-p04-relations');
+  const executeP04RelationsButton = document.getElementById('execute-p04-relations');
   let selectedEntityId = '';
   let fieldScopeTaskId = '';
   let fieldScopeTemplateId = '';
+  let comparisonStatus = comparisonStatusFilter.value;
+  let comparisonReviewState = comparisonReviewFilter.value;
+  let comparisonQuery = '';
+
+  const relationLabels = { direct_candidate: '直接候选', partial_candidate: '部分候选', adjacent_upgrade: '相邻升级', not_comparable: '不宜比较', insufficient_evidence: '证据不足' };
+  const reviewLabels = { candidate: '候选', review_required: '待复核', approved: '已批准', rejected: '已驳回', superseded: '已替代' };
+  const relationTone = (status) => ({ direct_candidate: 'good', partial_candidate: 'good', adjacent_upgrade: 'neutral', not_comparable: 'neutral', insufficient_evidence: 'warn' }[status] || 'neutral');
+  const reviewTone = (status) => ({ approved: 'good', candidate: 'neutral', review_required: 'warn', rejected: 'warn', superseded: 'neutral' }[status] || 'neutral');
+
+  const renderComparisonDetail = async (relationshipId) => {
+    comparisonDetailTarget.innerHTML = '<p class="muted">正在读取双方字段证据与关系审计…</p>';
+    try {
+      const item = await api(`/api/intelligence/comparisons/${encodeURIComponent(relationshipId)}`);
+      const gateRows = Object.entries(item.hardGates || {}).map(([code, gate]) => `<div class="detail"><span>${esc(code)}</span><strong>${esc(gate.subject?.value ?? '未披露')} ↔ ${esc(gate.counterpart?.value ?? '未披露')}</strong><span class="badge ${gate.subject?.outcome === 'pass' ? 'good' : 'warn'}">${gate.subject?.outcome === 'pass' ? '门槛通过' : '门槛不通过'}</span><small class="muted">双方证据：${esc(gate.subject?.evidenceState || '')} / ${esc(gate.counterpart?.evidenceState || '')}${gate.subject?.reason ? ` · ${esc(gate.subject.reason)}` : ''}</small></div>`).join('');
+      const evidenceRows = (item.evidence || []).map((evidence) => `<div class="detail"><span>${esc(evidence.participant_side === 'subject' ? 'ALE' : 'HPE Aruba')} · ${esc(evidence.field_code)}</span><strong>${esc(evidence.document_title || evidence.official_file_name || '官方 Data sheet')}</strong><small class="muted">SHA-256 ${esc((evidence.sha256 || '').slice(0, 12))}… · ${esc(evidence.locator || '')}</small><span>${esc(evidence.quote_text || '未提供原文摘录')}</span>${evidence.source_url ? `<a href="${esc(evidence.source_url)}" target="_blank" rel="noreferrer">官方证据链接</a>` : ''}</div>`).join('');
+      const reviewActions = ['candidate', 'review_required'].includes(item.review_state) ? `<div class="governance-actions"><button class="primary comparison-review-action" data-status="approved">批准此关系</button><button class="secondary comparison-review-action" data-status="rejected">驳回此关系</button></div>` : '';
+      comparisonDetailTarget.innerHTML = `<div class="detail"><span>关系</span><strong>${esc(item.subjectName)} ↔ ${esc(item.counterpartName)}</strong><span class="badge ${relationTone(item.match_status)}">${esc(relationLabels[item.match_status] || item.match_status)}</span><span class="badge ${reviewTone(item.review_state)}">${esc(reviewLabels[item.review_state] || item.review_state)}</span></div><div class="detail"><span>判定依据</span><strong>${esc(item.rationale || '未填写')}</strong></div><div class="detail"><span>关键偏离</span><strong>${esc(item.key_deviations || '无')}</strong></div><div class="detail"><span>不适用原因</span><strong>${esc(item.disqualification_reason || '无')}</strong></div><div class="detail"><span>采购验证问题</span><strong>${(item.validationQuestions || []).map(esc).join('；') || '无'}</strong></div><h4 class="detail-heading">首层硬门槛</h4>${gateRows || '<p class="muted">暂无硬门槛。</p>'}<h4 class="detail-heading">双方证据回链</h4>${evidenceRows || '<p class="muted">暂无证据关联。</p>'}${reviewActions}`;
+      comparisonDetailTarget.querySelectorAll('.comparison-review-action').forEach((button) => button.addEventListener('click', async () => {
+        const nextState = button.dataset.status;
+        const reason = window.prompt(nextState === 'approved' ? '请填写批准此对标关系的依据；该记录将进入治理审计：' : '请填写驳回此对标关系的原因；该记录将进入治理审计：');
+        if (!reason) return;
+        try { await api(`/api/intelligence/comparisons/${encodeURIComponent(item.relationship_id)}/review`, { method: 'PATCH', body: JSON.stringify({ reviewState: nextState, reason }) }); await refreshState(); await load(); notify('对标关系审核状态已更新并保留审计记录。'); }
+        catch (error) { notify(error.message, true); }
+      }));
+    } catch (error) { comparisonDetailTarget.innerHTML = `<p class="form-error">${esc(error.message)}</p>`; }
+  };
+
+  const loadComparisonRows = async () => {
+    const query = new URLSearchParams({ limit: '200' });
+    if (comparisonStatus) query.set('matchStatus', comparisonStatus);
+    if (comparisonReviewState) query.set('reviewState', comparisonReviewState);
+    if (comparisonQuery) query.set('q', comparisonQuery);
+    const rows = await api(`/api/intelligence/comparisons?${query.toString()}`);
+    comparisonSummaryTarget.textContent = rows.length ? `当前显示 ${rows.length} 条${comparisonStatus ? `“${relationLabels[comparisonStatus] || comparisonStatus}”` : ''}关系；点击“查看证据”审阅双方硬门槛、原文和资料修订。` : '尚未导入符合当前筛选条件的关系。';
+    comparisonRowsTarget.innerHTML = rows.length ? rows.map((row) => `<tr><td>${esc(row.subjectName)}</td><td>${esc(row.counterpartName)}</td><td><span class="badge ${relationTone(row.match_status)}">${esc(relationLabels[row.match_status] || row.match_status)}</span></td><td><span class="badge ${reviewTone(row.review_state)}">${esc(reviewLabels[row.review_state] || row.review_state)}</span></td><td>${esc(row.key_deviations || row.disqualification_reason || '无')}</td><td><button class="secondary comparison-detail-button" data-relationship-id="${esc(row.relationship_id)}">查看证据</button></td></tr>`).join('') : '<tr><td colspan="6" class="muted">没有符合当前筛选条件的对标关系。</td></tr>';
+    comparisonRowsTarget.querySelectorAll('.comparison-detail-button').forEach((button) => button.addEventListener('click', () => renderComparisonDetail(button.dataset.relationshipId)));
+  };
 
   const load = async () => {
     try {
-      const [overview, entities, imports, metrics, tasks, reviews, fieldTemplates] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs'), api('/api/intelligence/metrics'), api('/api/intelligence/research-tasks'), api('/api/intelligence/review-items'), api('/api/intelligence/field-templates')]);
-      if (!tasks.some((task) => task.task_id === fieldScopeTaskId)) fieldScopeTaskId = tasks[0]?.task_id || '';
+      const [overview, entities, imports, metrics, tasks, reviews, fieldTemplates, comparisonMetrics] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs'), api('/api/intelligence/metrics'), api('/api/intelligence/research-tasks'), api('/api/intelligence/review-items'), api('/api/intelligence/field-templates'), api('/api/intelligence/comparisons/metrics')]);
+      const preferredAleVerticalTask = tasks.find((task) => task.mode === 'vertical' && task.scope?.vendorId === 'ale') || tasks[0];
+      if (!tasks.some((task) => task.task_id === fieldScopeTaskId)) fieldScopeTaskId = preferredAleVerticalTask?.task_id || '';
       if (!fieldTemplates.some((template) => template.templateId === fieldScopeTemplateId)) fieldScopeTemplateId = fieldTemplates[0]?.templateId || '';
       const fieldPacks = fieldScopeTaskId ? await api(`/api/intelligence/research-tasks/${encodeURIComponent(fieldScopeTaskId)}/field-packs`) : [];
       state.intelligenceOverview = overview;
@@ -167,6 +215,20 @@ async function renderIntelligence() {
       const latest = overview.lastImport;
       statusTarget.innerHTML = latest ? `<strong>最近导入：${esc(latest.status === 'completed' ? '已完成' : latest.status)}</strong><br><span class="muted">${fmtDate(latest.finished_at || latest.started_at)} · ${esc(latest.importer_name)} · ${latest.summary?.sourceCount || 0} 份受控资料</span><br><span class="small muted">数据库：${esc(overview.databasePath)}。SQLite 数据层与 PDF/manifest/来源配置隔离。</span>` : '<strong>尚未执行导入。</strong><br><span class="muted">可先预览 ALE 受控来源；执行后只会写入独立 SQLite 数据库。</span>';
       auditTarget.innerHTML = imports.length ? imports.slice(0, 5).map(item => `<div class="run-item ${item.status === 'failed' ? 'attention' : ''}"><div class="run-title">${esc(item.importer_name)} <span class="badge ${item.status === 'completed' ? 'good' : 'warn'}">${esc(item.status)}</span></div><div class="run-meta">${fmtDate(item.finished_at || item.started_at)} · ${item.summary?.sourceCount || 0} 份资料 · 新增实体 ${item.summary?.created?.entities || 0} / 复用 ${item.summary?.reused?.entities || 0}</div></div>`).join('') : '<p class="muted">尚无情报核心导入审计。</p>';
+      const comparisonCards = [
+        ['对标关系', comparisonMetrics.total || 0, 'accent'],
+        ['直接候选', comparisonMetrics.byStatus?.direct_candidate || 0, 'accent'],
+        ['部分 / 相邻升级', (comparisonMetrics.byStatus?.partial_candidate || 0) + (comparisonMetrics.byStatus?.adjacent_upgrade || 0), 'accent'],
+        ['不宜 / 证据不足', (comparisonMetrics.byStatus?.not_comparable || 0) + (comparisonMetrics.byStatus?.insufficient_evidence || 0), (comparisonMetrics.byStatus?.insufficient_evidence || 0) ? 'warn' : 'accent'],
+        ['关系待复核', comparisonMetrics.byReviewState?.review_required || 0, (comparisonMetrics.byReviewState?.review_required || 0) ? 'warn' : 'accent'],
+      ];
+      comparisonMetricsTarget.innerHTML = comparisonCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div></div>`).join('');
+      const hasComparisons = (comparisonMetrics.total || 0) > 0;
+      comparisonImportStatusTarget.className = `callout ${hasComparisons ? ((comparisonMetrics.byReviewState?.review_required || 0) ? 'attention' : 'success') : 'muted'}`;
+      comparisonImportStatusTarget.innerHTML = hasComparisons
+        ? `<strong>P0-4 关系库已写入。</strong><br><span>共 ${comparisonMetrics.total} 条多对多关系；直接候选 ${comparisonMetrics.byStatus?.direct_candidate || 0}、部分候选 ${comparisonMetrics.byStatus?.partial_candidate || 0}、相邻升级 ${comparisonMetrics.byStatus?.adjacent_upgrade || 0}、不宜比较 ${comparisonMetrics.byStatus?.not_comparable || 0}、证据不足 ${comparisonMetrics.byStatus?.insufficient_evidence || 0}。只有审核状态“已批准”的关系可被用于产品定型结论。</span>`
+        : '<strong>尚未导入 P0-4 关系。</strong><br><span>先预览首批 81 个基础技术型号和 1,610 条候选对；预览不会写入 SQLite。</span>';
+      await loadComparisonRows();
       const coverage = metrics.fieldCoverage || {};
       const metricCards = [
         ['证据元数据覆盖率', `${coverage.provenance?.percent ?? 0}%`, coverage.provenance?.status === 'ready' ? 'accent' : 'warn'],
@@ -291,6 +353,32 @@ async function renderIntelligence() {
       notify(`字段事实导入完成：已核验 ${states.evidence_verified || 0} · 未披露 ${states.not_disclosed || 0} · 待复核 ${states.needs_review || 0}。`);
     } catch (error) { notify(error.message, true); }
     finally { executeAleFieldFactsButton.textContent = '执行字段事实导入'; }
+  });
+  comparisonStatusFilter.onchange = async () => { comparisonStatus = comparisonStatusFilter.value; await loadComparisonRows(); };
+  comparisonReviewFilter.onchange = async () => { comparisonReviewState = comparisonReviewFilter.value; await loadComparisonRows(); };
+  comparisonSearchInput.onchange = async () => { comparisonQuery = comparisonSearchInput.value.trim(); await loadComparisonRows(); };
+  comparisonSearchInput.onkeydown = async (event) => { if (event.key === 'Enter') { event.preventDefault(); comparisonQuery = comparisonSearchInput.value.trim(); await loadComparisonRows(); } };
+  previewP04RelationsButton.addEventListener('click', async () => {
+    previewP04RelationsButton.disabled = true; previewP04RelationsButton.textContent = '正在预览…';
+    try {
+      const plan = await api('/api/intelligence/imports/p04-pilot-relations/preview', { method: 'POST', body: '{}' });
+      comparisonImportStatusTarget.className = 'callout success';
+      comparisonImportStatusTarget.innerHTML = `<strong>预览完成：未写入 SQLite。</strong><br><span>范围：${plan.modelCount || 0} 个基础技术型号；候选对：${plan.candidatePairs || 0}；系列：${(plan.expectedSeries || []).map((item) => `${esc(item.series)}（${item.models}）`).join('、')}。资料快照：${esc(plan.sourceSnapshot?.snapshotId || '')}。</span>`;
+      notify(`P0-4 预览完成：${plan.modelCount || 0} 个型号，${plan.candidatePairs || 0} 条候选对；未写入数据库。`);
+    } catch (error) { notify(error.message, true); }
+    finally { previewP04RelationsButton.disabled = false; previewP04RelationsButton.textContent = '预览 P0-4 对标关系'; }
+  });
+  executeP04RelationsButton.addEventListener('click', async () => {
+    const confirmed = window.confirm('确认将 P0-4 审计基线中的型号实体、字段事实、证据回链与多对多对标关系写入独立 SQLite 情报核心吗？\n\n本操作不会修改 PDF、资料库、采集配置或历史快照。导入结果中的“直接候选”仍需产品经理审核批准后才可用于产品定型结论。');
+    if (!confirmed) return;
+    executeP04RelationsButton.disabled = true; executeP04RelationsButton.textContent = '正在导入…';
+    try {
+      const result = await api('/api/intelligence/imports/p04-pilot-relations/execute', { method: 'POST', body: '{}' });
+      await refreshState(); await load();
+      const states = result.summary?.relationshipStates || {};
+      notify(`P0-4 导入完成：直接 ${states.direct_candidate || 0}、部分 ${states.partial_candidate || 0}、相邻升级 ${states.adjacent_upgrade || 0}、不宜比较 ${states.not_comparable || 0}、证据不足 ${states.insufficient_evidence || 0}。`);
+    } catch (error) { notify(error.message, true); }
+    finally { executeP04RelationsButton.disabled = false; executeP04RelationsButton.textContent = '执行受控关系导入'; }
   });
   previewButton.addEventListener('click', async () => {
     previewButton.disabled = true; previewButton.textContent = '正在预览…';

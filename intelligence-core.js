@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const { createFieldScopeManager } = require('./intelligence/field-scope');
 
-const SCHEMA_VERSION = 'p0-2.1';
+const SCHEMA_VERSION = 'p0-4.0';
 
 function timestamp() { return new Date().toISOString(); }
 function json(value) { return JSON.stringify(value ?? {}); }
@@ -188,6 +188,43 @@ function createIntelligenceCore(dataDir) {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_governance_audit_object ON governance_audit(object_type, object_id, created_at);
+    CREATE TABLE IF NOT EXISTS comparison_relationships (
+      relationship_id TEXT PRIMARY KEY,
+      natural_key TEXT NOT NULL UNIQUE,
+      task_id TEXT,
+      subject_entity_id TEXT NOT NULL,
+      counterpart_entity_id TEXT NOT NULL,
+      match_status TEXT NOT NULL,
+      review_state TEXT NOT NULL DEFAULT 'candidate',
+      candidate_rank INTEGER NOT NULL DEFAULT 0,
+      hard_gates_json TEXT NOT NULL DEFAULT '{}',
+      dimensions_json TEXT NOT NULL DEFAULT '{}',
+      rationale TEXT NOT NULL DEFAULT '',
+      key_deviations TEXT NOT NULL DEFAULT '',
+      disqualification_reason TEXT NOT NULL DEFAULT '',
+      validation_questions_json TEXT NOT NULL DEFAULT '[]',
+      source_snapshot_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(task_id) REFERENCES research_tasks(task_id),
+      FOREIGN KEY(subject_entity_id) REFERENCES entities(entity_id),
+      FOREIGN KEY(counterpart_entity_id) REFERENCES entities(entity_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_comparison_relationships_task ON comparison_relationships(task_id, match_status, review_state);
+    CREATE INDEX IF NOT EXISTS idx_comparison_relationships_subject ON comparison_relationships(subject_entity_id, counterpart_entity_id);
+    CREATE TABLE IF NOT EXISTS comparison_relationship_evidence (
+      relationship_evidence_id TEXT PRIMARY KEY,
+      relationship_id TEXT NOT NULL,
+      evidence_id TEXT NOT NULL,
+      participant_side TEXT NOT NULL,
+      field_code TEXT NOT NULL,
+      evidence_role TEXT NOT NULL DEFAULT 'hard_gate',
+      created_at TEXT NOT NULL,
+      UNIQUE(relationship_id, evidence_id, participant_side, field_code, evidence_role),
+      FOREIGN KEY(relationship_id) REFERENCES comparison_relationships(relationship_id),
+      FOREIGN KEY(evidence_id) REFERENCES evidence(evidence_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_comparison_relation_evidence ON comparison_relationship_evidence(relationship_id, participant_side);
   `);
 
   db.prepare(`INSERT INTO schema_meta(meta_key, meta_value, updated_at) VALUES (?, ?, ?)
@@ -424,6 +461,104 @@ function createIntelligenceCore(dataDir) {
     return { ...record, source: input.source || {}, resolution: input.resolution || {}, existed: Boolean(existing) };
   }
 
+  function relationshipRow(row) {
+    return row ? {
+      ...row,
+      hardGates: parseJson(row.hard_gates_json),
+      dimensions: parseJson(row.dimensions_json),
+      validationQuestions: parseJson(row.validation_questions_json, []),
+      sourceSnapshot: parseJson(row.source_snapshot_json),
+    } : null;
+  }
+
+  function upsertComparisonRelationship(input) {
+    const allowedStatus = new Set(['direct_candidate', 'partial_candidate', 'adjacent_upgrade', 'not_comparable', 'insufficient_evidence']);
+    const allowedReviewStates = new Set(['candidate', 'review_required', 'approved', 'rejected', 'superseded']);
+    if (!allowedStatus.has(input.matchStatus)) throw new Error('对标关系状态不合法。');
+    if (!allowedReviewStates.has(input.reviewState || 'candidate')) throw new Error('对标关系审核状态不合法。');
+    if (!input.subjectEntityId || !input.counterpartEntityId || input.subjectEntityId === input.counterpartEntityId) throw new Error('对标关系必须关联两个不同的型号实体。');
+    const naturalKey = input.naturalKey || `${input.subjectEntityId}|${input.counterpartEntityId}|${input.matchStatus}`;
+    const existing = db.prepare('SELECT * FROM comparison_relationships WHERE natural_key = ?').get(naturalKey);
+    const record = {
+      relationship_id: existing?.relationship_id || stableId('rel', naturalKey), natural_key: naturalKey, task_id: input.taskId || null,
+      subject_entity_id: input.subjectEntityId, counterpart_entity_id: input.counterpartEntityId, match_status: input.matchStatus,
+      review_state: input.reviewState || 'candidate', candidate_rank: Number.isInteger(input.candidateRank) ? input.candidateRank : 0,
+      hard_gates_json: json(input.hardGates || {}), dimensions_json: json(input.dimensions || {}), rationale: input.rationale || '',
+      key_deviations: input.keyDeviations || '', disqualification_reason: input.disqualificationReason || '',
+      validation_questions_json: json(input.validationQuestions || []), source_snapshot_json: json(input.sourceSnapshot || {}),
+      created_at: existing?.created_at || timestamp(), updated_at: timestamp(),
+    };
+    if (existing) {
+      db.prepare(`UPDATE comparison_relationships SET task_id = ?, subject_entity_id = ?, counterpart_entity_id = ?, match_status = ?, review_state = ?, candidate_rank = ?, hard_gates_json = ?, dimensions_json = ?, rationale = ?, key_deviations = ?, disqualification_reason = ?, validation_questions_json = ?, source_snapshot_json = ?, updated_at = ? WHERE relationship_id = ?`)
+        .run(record.task_id, record.subject_entity_id, record.counterpart_entity_id, record.match_status, record.review_state, record.candidate_rank, record.hard_gates_json, record.dimensions_json, record.rationale, record.key_deviations, record.disqualification_reason, record.validation_questions_json, record.source_snapshot_json, record.updated_at, record.relationship_id);
+    } else {
+      db.prepare(`INSERT INTO comparison_relationships(relationship_id, natural_key, task_id, subject_entity_id, counterpart_entity_id, match_status, review_state, candidate_rank, hard_gates_json, dimensions_json, rationale, key_deviations, disqualification_reason, validation_questions_json, source_snapshot_json, created_at, updated_at)
+        VALUES (@relationship_id, @natural_key, @task_id, @subject_entity_id, @counterpart_entity_id, @match_status, @review_state, @candidate_rank, @hard_gates_json, @dimensions_json, @rationale, @key_deviations, @disqualification_reason, @validation_questions_json, @source_snapshot_json, @created_at, @updated_at)`).run(record);
+    }
+    return { ...relationshipRow(record), existed: Boolean(existing) };
+  }
+
+  function linkComparisonRelationshipEvidence(input) {
+    if (!['subject', 'counterpart'].includes(input.participantSide)) throw new Error('关系证据参与方必须为 subject 或 counterpart。');
+    const role = input.evidenceRole || 'hard_gate';
+    const naturalKey = `${input.relationshipId}|${input.evidenceId}|${input.participantSide}|${input.fieldCode}|${role}`;
+    const existing = db.prepare('SELECT * FROM comparison_relationship_evidence WHERE relationship_id = ? AND evidence_id = ? AND participant_side = ? AND field_code = ? AND evidence_role = ?')
+      .get(input.relationshipId, input.evidenceId, input.participantSide, input.fieldCode, role);
+    if (existing) return { ...existing, existed: true };
+    const record = { relationship_evidence_id: stableId('relevd', naturalKey), relationship_id: input.relationshipId, evidence_id: input.evidenceId, participant_side: input.participantSide, field_code: input.fieldCode, evidence_role: role, created_at: timestamp() };
+    db.prepare(`INSERT INTO comparison_relationship_evidence(relationship_evidence_id, relationship_id, evidence_id, participant_side, field_code, evidence_role, created_at)
+      VALUES (@relationship_evidence_id, @relationship_id, @evidence_id, @participant_side, @field_code, @evidence_role, @created_at)`).run(record);
+    return { ...record, existed: false };
+  }
+
+  function listComparisonRelationships(filters = {}) {
+    const clauses = []; const params = [];
+    if (filters.taskId) { clauses.push('r.task_id = ?'); params.push(filters.taskId); }
+    if (filters.matchStatus) { clauses.push('r.match_status = ?'); params.push(filters.matchStatus); }
+    if (filters.reviewState) { clauses.push('r.review_state = ?'); params.push(filters.reviewState); }
+    if (filters.q) { clauses.push('(s.canonical_name LIKE ? OR c.canonical_name LIKE ?)'); const query = `%${String(filters.q).slice(0, 120)}%`; params.push(query, query); }
+    const limit = Math.min(Math.max(Number(filters.limit) || 200, 1), 500);
+    const sql = `SELECT r.*, s.canonical_name AS subject_name, s.vendor_id AS subject_vendor_id, c.canonical_name AS counterpart_name, c.vendor_id AS counterpart_vendor_id
+      FROM comparison_relationships r JOIN entities s ON s.entity_id = r.subject_entity_id JOIN entities c ON c.entity_id = r.counterpart_entity_id
+      ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''}
+      ORDER BY CASE r.review_state WHEN 'review_required' THEN 0 WHEN 'candidate' THEN 1 WHEN 'approved' THEN 2 ELSE 3 END, r.candidate_rank ASC, s.canonical_name, c.canonical_name LIMIT ${limit}`;
+    return db.prepare(sql).all(...params).map((row) => ({ ...relationshipRow(row), subjectName: row.subject_name, subjectVendorId: row.subject_vendor_id, counterpartName: row.counterpart_name, counterpartVendorId: row.counterpart_vendor_id }));
+  }
+
+  function comparisonRelationshipDetail(relationshipId) {
+    const row = db.prepare(`SELECT r.*, s.canonical_name AS subject_name, s.vendor_id AS subject_vendor_id, c.canonical_name AS counterpart_name, c.vendor_id AS counterpart_vendor_id
+      FROM comparison_relationships r JOIN entities s ON s.entity_id = r.subject_entity_id JOIN entities c ON c.entity_id = r.counterpart_entity_id WHERE r.relationship_id = ?`).get(relationshipId);
+    if (!row) return null;
+    const evidence = db.prepare(`SELECT re.*, e.source_url, e.quote_text, e.locator, e.evidence_scope, e.evidence_status, d.title AS document_title, d.canonical_url, rev.sha256, rev.official_file_name
+      FROM comparison_relationship_evidence re JOIN evidence e ON e.evidence_id = re.evidence_id JOIN document_revisions rev ON rev.revision_id = e.revision_id JOIN documents d ON d.document_id = rev.document_id
+      WHERE re.relationship_id = ? ORDER BY re.participant_side, re.evidence_role, re.field_code`).all(relationshipId);
+    return { ...relationshipRow(row), subjectName: row.subject_name, subjectVendorId: row.subject_vendor_id, counterpartName: row.counterpart_name, counterpartVendorId: row.counterpart_vendor_id, evidence };
+  }
+
+  function updateComparisonRelationshipReview(relationshipId, input = {}) {
+    const before = db.prepare('SELECT * FROM comparison_relationships WHERE relationship_id = ?').get(relationshipId);
+    if (!before) throw new Error('未找到对标关系。');
+    const allowed = new Set(['candidate', 'review_required', 'approved', 'rejected', 'superseded']);
+    const reviewState = input.reviewState || before.review_state;
+    if (!allowed.has(reviewState)) throw new Error('对标关系审核状态不合法。');
+    const reason = String(input.reason || '').trim();
+    if (['approved', 'rejected', 'superseded'].includes(reviewState) && !reason) throw new Error('批准、驳回或替代对标关系时必须说明理由。');
+    db.prepare('UPDATE comparison_relationships SET review_state = ?, updated_at = ? WHERE relationship_id = ?').run(reviewState, timestamp(), relationshipId);
+    const after = db.prepare('SELECT * FROM comparison_relationships WHERE relationship_id = ?').get(relationshipId);
+    auditGovernance({ actor: input.actor || 'local-admin', action: 'comparison_relationship_review', objectType: 'comparison_relationship', objectId: relationshipId, before: relationshipRow(before), after: { ...relationshipRow(after), reason }, reason });
+    return relationshipRow(after);
+  }
+
+  function comparisonRelationshipMetrics(taskId = '') {
+    const where = taskId ? 'WHERE task_id = ?' : '';
+    const params = taskId ? [taskId] : [];
+    const byStatus = Object.fromEntries(db.prepare(`SELECT match_status AS key, COUNT(*) AS count FROM comparison_relationships ${where} GROUP BY match_status`).all(...params).map((row) => [row.key, row.count]));
+    const byReviewState = Object.fromEntries(db.prepare(`SELECT review_state AS key, COUNT(*) AS count FROM comparison_relationships ${where} GROUP BY review_state`).all(...params).map((row) => [row.key, row.count]));
+    const total = Object.values(byStatus).reduce((sum, value) => sum + value, 0);
+    const evidenceLinks = db.prepare(`SELECT COUNT(*) AS count FROM comparison_relationship_evidence ${taskId ? 'WHERE relationship_id IN (SELECT relationship_id FROM comparison_relationships WHERE task_id = ?)' : ''}`).get(...params).count;
+    return { total, byStatus, byReviewState, evidenceLinks };
+  }
+
   const fieldScopes = createFieldScopeManager({ db, stableId, timestamp, json, parseJson, auditGovernance, upsertReviewItem });
 
   function bootstrapAleGovernance(actor = 'local-admin') {
@@ -540,7 +675,7 @@ function createIntelligenceCore(dataDir) {
     return {
       schemaVersion: SCHEMA_VERSION,
       databasePath: dbPath,
-      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items'), fieldTemplates: count('field_templates'), taskFieldPacks: count('task_field_packs') },
+      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items'), comparisonRelationships: count('comparison_relationships'), comparisonRelationshipEvidence: count('comparison_relationship_evidence'), fieldTemplates: count('field_templates'), taskFieldPacks: count('task_field_packs') },
       entitiesByType: byType,
       factsByPublicationState: byState,
       lastImport: lastImport ? { ...lastImport, sourceDescriptor: parseJson(lastImport.source_descriptor_json), summary: parseJson(lastImport.summary_json) } : null,
@@ -598,6 +733,9 @@ function createIntelligenceCore(dataDir) {
       researchTasks: rows('research_tasks').map(taskRow),
       reviewItems: rows('review_items').map(reviewRow),
       governanceAudit: rows('governance_audit').map((row) => ({ ...row, before: parseJson(row.before_json), after: parseJson(row.after_json) })),
+      comparisonRelationships: rows('comparison_relationships').map(relationshipRow),
+      comparisonRelationshipEvidence: rows('comparison_relationship_evidence'),
+      comparisonRelationshipMetrics: comparisonRelationshipMetrics(),
       governanceMetrics: governanceMetrics(),
       ...fieldScopes.snapshotTables(),
     };
@@ -621,10 +759,17 @@ function createIntelligenceCore(dataDir) {
     listDocuments,
     listImportRuns,
     bootstrapAleGovernance,
+    upsertResearchTask,
     listResearchTasks,
     listReviewItems,
     upsertReviewItem,
     updateReviewItem,
+    upsertComparisonRelationship,
+    linkComparisonRelationshipEvidence,
+    listComparisonRelationships,
+    comparisonRelationshipDetail,
+    updateComparisonRelationshipReview,
+    comparisonRelationshipMetrics,
     governanceMetrics,
     listFieldTemplates: fieldScopes.listFieldTemplates,
     getFieldTemplate: fieldScopes.getFieldTemplate,

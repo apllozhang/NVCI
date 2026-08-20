@@ -16,8 +16,9 @@ NVCI 是一个面向局域网 NAS Docker 部署的图形化资料治理工作台
 | NAS 本地自动采集 | 后台采集器在 NAS 同一 Docker 编排内执行固定公开来源的增量检查、SHA-256 核验、不可变快照发布和活动资料库入库。 |
 | 受控字段事实（P0-3） | 对已批准的字段范围，将 ALE 官方 Data sheet / Order information 的字段证据写入独立 SQLite；预览不写入，执行必须确认，且保留证据定位与导入审计。 |
 | 三态覆盖率与审核 | 技术字段必须明确区分已核验、未披露和待复核；未披露不得推断为不支持，待复核项自动进入审核队列。 |
+| 型号级对标关系库（P0-4） | 将双方基础技术型号、首层硬门槛、关键偏离、采购验证问题、资料修订、SHA-256 与原文定位写入可审计多对多关系；关系必须先经人工批准，才可用于产品定型结论。 |
 
-> 当前发布版本：**v0.9.1**。P0-3 的详细门禁、字段范围和验收标准见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)。
+> 当前发布版本：**v1.0.0**。P0-3 的字段事实门禁见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)；P0-4 的关系状态、证据准入与验收标准见 [`P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md`](./P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md)。
 
 ## NAS Docker 部署
 
@@ -120,7 +121,7 @@ docker compose up -d nvci-collector
 
 ```bash
 # NAS Docker 部署：不要在宿主机直接执行 npm ci。
-# v0.9.1 会在 Alpine 构建阶段强制 better-sqlite3 从源码编译，避开 prebuild-install 的外部预编译包等待。
+# v1.0.0 继承 v0.9.1 的 Alpine 构建修复：better-sqlite3 强制从源码编译，避开 prebuild-install 的外部预编译包等待。
 docker compose --progress=plain build nvci
 docker compose up -d --no-deps nvci
 docker compose up -d nvci-collector
