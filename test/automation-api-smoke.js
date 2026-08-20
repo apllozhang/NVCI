@@ -51,7 +51,11 @@ async function request(url, options = {}) {
     assert.equal(huaweiProfile.approvalStatus, 'draft', `${huaweiProfile.profileId} must require sample verification before approval`);
     assert.equal(huaweiProfile.enabled, false, `${huaweiProfile.profileId} must remain disabled until manually approved`);
   }
-  const controlledVendorIds = ['ale', 'hpe', 'cisco', 'h3c', 'ruijie', 'huawei'];
+  const extremeProfile = status.data.profiles.find((item) => item.profileId === 'extreme_4000_series');
+  assert.ok(extremeProfile, 'Extreme 4000 Series bundled profile must be loaded');
+  assert.equal(extremeProfile.sourceCount, 1, 'Extreme pilot must contain the verified 4000 Series Data Sheet');
+  assert.equal(extremeProfile.approvalStatus, 'draft'); assert.equal(extremeProfile.enabled, false);
+  const controlledVendorIds = ['ale', 'hpe', 'cisco', 'h3c', 'ruijie', 'huawei', 'extreme'];
   for (const vendorId of controlledVendorIds) {
     const vendorProfiles = status.data.profiles.filter((item) => item.vendorId === vendorId);
     assert.ok(vendorProfiles.length > 0, `${vendorId} must have at least one controlled source profile`);

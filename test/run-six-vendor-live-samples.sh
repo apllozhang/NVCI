@@ -27,6 +27,7 @@ profiles=(
   cisco_switches_exact_mapping_01
   h3c_switches_verified_01
   ruijie_public_preview_01
+  extreme_4000_series
   huawei_campus_access
 )
 for profile in "${profiles[@]}"; do
