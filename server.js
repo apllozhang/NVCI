@@ -213,6 +213,24 @@ app.get('/api/intelligence/entities/:entityId', auth, (req, res) => { const item
 app.get('/api/intelligence/documents', auth, (req, res) => res.json(intelligence.listDocuments({ vendorId: String(req.query.vendorId || '').slice(0, 64) })));
 app.get('/api/intelligence/import-runs', auth, (req, res) => res.json(intelligence.listImportRuns()));
 app.get('/api/intelligence/export', auth, (req, res) => { res.setHeader('Content-Disposition', 'attachment; filename="nvci-intelligence-export.json"'); res.json(intelligence.exportSnapshot()); });
+// P0-2 治理 API：任务与审核仅写入 SQLite 情报核心，不回写 PDF、来源配置或既有资料库 JSON。
+app.get('/api/intelligence/metrics', auth, (req, res) => res.json(intelligence.governanceMetrics()));
+app.get('/api/intelligence/research-tasks', auth, (req, res) => res.json(intelligence.listResearchTasks()));
+app.get('/api/intelligence/review-items', auth, (req, res) => res.json(intelligence.listReviewItems({ status: String(req.query.status || '').slice(0, 32), taskId: String(req.query.taskId || '').slice(0, 128) })));
+app.post('/api/intelligence/governance/ale-bootstrap', auth, (req, res) => {
+  try {
+    const result = intelligence.bootstrapAleGovernance('local-admin');
+    addRun({ id: id('intelligence-governance'), type: '情报核心 P0-2 ALE 治理试点', status: 'completed', summary: `初始化 ALE 研究任务与审核队列：任务新增 ${result.created.tasks} / 复用 ${result.created.reusedTasks}，审核新增 ${result.created.reviews} / 复用 ${result.created.reusedReviews}。`, createdAt: now(), details: { taskId: result.task.task_id, created: result.created, metrics: result.metrics } });
+    res.status(201).json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.patch('/api/intelligence/review-items/:reviewId', auth, (req, res) => {
+  try {
+    const review = intelligence.updateReviewItem(req.params.reviewId, { status: req.body?.status, owner: req.body?.owner, resolution: req.body?.resolution, reason: req.body?.reason, actor: 'local-admin' });
+    addRun({ id: id('intelligence-review'), type: '情报核心审核处理', status: 'completed', summary: `${review.title} 已更新为 ${review.status}。`, createdAt: now(), details: { reviewId: review.review_id, status: review.status, owner: review.owner } });
+    res.json(review);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
 app.post('/api/intelligence/imports/ale-readonly/preview', auth, (req, res) => {
   try { res.json({ mode: 'dry_run', ...planAleReadOnlyImport({ dataDir: DATA_DIR, profilePath: undefined }) }); }
   catch (error) { res.status(400).json({ error: String(error.message || error) }); }

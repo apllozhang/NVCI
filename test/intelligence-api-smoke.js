@@ -57,6 +57,21 @@ async function run() {
     assert.equal(detail.payload.facts.length, 5);
     const documents = await request(cookie, 'GET', '/api/intelligence/documents?vendorId=ale');
     assert.equal(documents.payload.length, 15);
+    const initialized = await request(cookie, 'POST', '/api/intelligence/governance/ale-bootstrap', {});
+    assert.equal(initialized.payload.created.tasks, 1);
+    assert.equal(initialized.payload.created.reviews, 2);
+    const metrics = await request(cookie, 'GET', '/api/intelligence/metrics');
+    assert.equal(metrics.payload.fieldCoverage.provenance.percent, 100);
+    assert.equal(metrics.payload.fieldCoverage.technical.percent, 0);
+    assert.equal(metrics.payload.freshness.percent, 100);
+    assert.equal(metrics.payload.reviewQueue.openTotal, 2);
+    const tasks = await request(cookie, 'GET', '/api/intelligence/research-tasks');
+    assert.equal(tasks.payload.length, 1);
+    assert.equal(tasks.payload[0].status, 'evidence_review');
+    const reviews = await request(cookie, 'GET', '/api/intelligence/review-items');
+    assert.equal(reviews.payload.length, 2);
+    const inReview = await request(cookie, 'PATCH', `/api/intelligence/review-items/${encodeURIComponent(reviews.payload[0].review_id)}`, { status: 'in_review' });
+    assert.equal(inReview.payload.status, 'in_review');
     const imports = await request(cookie, 'GET', '/api/intelligence/import-runs');
     assert.equal(imports.payload.length, 1);
     const snapshot = await request(cookie, 'GET', '/api/intelligence/export');
@@ -65,6 +80,9 @@ async function run() {
     assert.equal(snapshot.payload.documents.length, 15);
     assert.equal(snapshot.payload.evidence.length, 75);
     assert.equal(snapshot.payload.facts.length, 75);
+    assert.equal(snapshot.payload.researchTasks.length, 1);
+    assert.equal(snapshot.payload.reviewItems.length, 2);
+    assert.ok(snapshot.payload.governanceAudit.length >= 2);
 
     const repeated = await request(cookie, 'POST', '/api/intelligence/imports/ale-readonly/execute', {});
     assert.equal(repeated.payload.summary.created.documents, 0);

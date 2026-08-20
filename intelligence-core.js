@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const Database = require('better-sqlite3');
 
-const SCHEMA_VERSION = 'p0-1.0';
+const SCHEMA_VERSION = 'p0-2.0';
 
 function timestamp() { return new Date().toISOString(); }
 function json(value) { return JSON.stringify(value ?? {}); }
@@ -139,6 +139,54 @@ function createIntelligenceCore(dataDir) {
       UNIQUE(import_run_id, source_key, target_type, target_id),
       FOREIGN KEY(import_run_id) REFERENCES import_runs(import_run_id)
     );
+    CREATE TABLE IF NOT EXISTS research_tasks (
+      task_id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      decision_question TEXT NOT NULL,
+      scope_json TEXT NOT NULL DEFAULT '{}',
+      owner TEXT NOT NULL DEFAULT 'local-admin',
+      status TEXT NOT NULL DEFAULT 'draft',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      baseline_descriptor_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      published_at TEXT,
+      UNIQUE(mode, title)
+    );
+    CREATE INDEX IF NOT EXISTS idx_research_tasks_status ON research_tasks(status, priority);
+    CREATE TABLE IF NOT EXISTS review_items (
+      review_id TEXT PRIMARY KEY,
+      task_id TEXT,
+      queue_type TEXT NOT NULL,
+      object_type TEXT NOT NULL,
+      object_id TEXT NOT NULL,
+      natural_key TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      severity TEXT NOT NULL DEFAULT 'medium',
+      status TEXT NOT NULL DEFAULT 'open',
+      owner TEXT NOT NULL DEFAULT 'local-admin',
+      source_json TEXT NOT NULL DEFAULT '{}',
+      resolution_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      closed_at TEXT,
+      FOREIGN KEY(task_id) REFERENCES research_tasks(task_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_review_items_status ON review_items(status, severity, queue_type);
+    CREATE TABLE IF NOT EXISTS governance_audit (
+      audit_id TEXT PRIMARY KEY,
+      actor TEXT NOT NULL,
+      action TEXT NOT NULL,
+      object_type TEXT NOT NULL,
+      object_id TEXT NOT NULL,
+      before_json TEXT NOT NULL DEFAULT '{}',
+      after_json TEXT NOT NULL DEFAULT '{}',
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_governance_audit_object ON governance_audit(object_type, object_id, created_at);
   `);
 
   db.prepare(`INSERT INTO schema_meta(meta_key, meta_value, updated_at) VALUES (?, ?, ?)
@@ -305,6 +353,173 @@ function createIntelligenceCore(dataDir) {
       ON CONFLICT(import_run_id, source_key, target_type, target_id) DO UPDATE SET action = excluded.action, detail_json = excluded.detail_json`).run(record);
   }
 
+  function taskRow(row) {
+    return row ? { ...row, scope: parseJson(row.scope_json), baselineDescriptor: parseJson(row.baseline_descriptor_json) } : null;
+  }
+
+  function reviewRow(row) {
+    return row ? { ...row, source: parseJson(row.source_json), resolution: parseJson(row.resolution_json) } : null;
+  }
+
+  function auditGovernance(input) {
+    db.prepare(`INSERT INTO governance_audit(audit_id, actor, action, object_type, object_id, before_json, after_json, reason, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(`gov_${crypto.randomUUID()}`, input.actor || 'local-admin', input.action, input.objectType, input.objectId, json(input.before || {}), json(input.after || {}), input.reason || '', timestamp());
+  }
+
+  function upsertResearchTask(input) {
+    const existing = db.prepare('SELECT * FROM research_tasks WHERE mode = ? AND title = ?').get(input.mode, input.title);
+    const record = {
+      task_id: existing?.task_id || stableId('task', `${input.mode}|${input.title}`),
+      title: input.title,
+      mode: input.mode,
+      decision_question: input.decisionQuestion,
+      scope_json: json(input.scope || {}),
+      owner: input.owner || 'local-admin',
+      status: input.status || existing?.status || 'draft',
+      priority: input.priority || existing?.priority || 'medium',
+      baseline_descriptor_json: json(input.baselineDescriptor || {}),
+      created_at: existing?.created_at || timestamp(),
+      updated_at: timestamp(),
+      published_at: input.publishedAt || existing?.published_at || null,
+    };
+    if (existing) {
+      db.prepare(`UPDATE research_tasks SET decision_question = ?, scope_json = ?, owner = ?, status = ?, priority = ?, baseline_descriptor_json = ?, updated_at = ?, published_at = ? WHERE task_id = ?`)
+        .run(record.decision_question, record.scope_json, record.owner, record.status, record.priority, record.baseline_descriptor_json, record.updated_at, record.published_at, record.task_id);
+    } else {
+      db.prepare(`INSERT INTO research_tasks(task_id, title, mode, decision_question, scope_json, owner, status, priority, baseline_descriptor_json, created_at, updated_at, published_at)
+        VALUES (@task_id, @title, @mode, @decision_question, @scope_json, @owner, @status, @priority, @baseline_descriptor_json, @created_at, @updated_at, @published_at)`).run(record);
+    }
+    return { ...record, scope: input.scope || {}, baselineDescriptor: input.baselineDescriptor || {}, existed: Boolean(existing) };
+  }
+
+  function upsertReviewItem(input) {
+    const existing = db.prepare('SELECT * FROM review_items WHERE natural_key = ?').get(input.naturalKey);
+    const record = {
+      review_id: existing?.review_id || stableId('review', input.naturalKey),
+      task_id: input.taskId || null,
+      queue_type: input.queueType,
+      object_type: input.objectType,
+      object_id: input.objectId,
+      natural_key: input.naturalKey,
+      title: input.title,
+      reason: input.reason || '',
+      severity: input.severity || 'medium',
+      status: input.status || existing?.status || 'open',
+      owner: input.owner || existing?.owner || 'local-admin',
+      source_json: json(input.source || {}),
+      resolution_json: json(input.resolution || (existing ? parseJson(existing.resolution_json) : {})),
+      created_at: existing?.created_at || timestamp(),
+      updated_at: timestamp(),
+      closed_at: input.closedAt || existing?.closed_at || null,
+    };
+    if (existing) {
+      db.prepare(`UPDATE review_items SET task_id = ?, queue_type = ?, object_type = ?, object_id = ?, title = ?, reason = ?, severity = ?, status = ?, owner = ?, source_json = ?, resolution_json = ?, updated_at = ?, closed_at = ? WHERE review_id = ?`)
+        .run(record.task_id, record.queue_type, record.object_type, record.object_id, record.title, record.reason, record.severity, record.status, record.owner, record.source_json, record.resolution_json, record.updated_at, record.closed_at, record.review_id);
+    } else {
+      db.prepare(`INSERT INTO review_items(review_id, task_id, queue_type, object_type, object_id, natural_key, title, reason, severity, status, owner, source_json, resolution_json, created_at, updated_at, closed_at)
+        VALUES (@review_id, @task_id, @queue_type, @object_type, @object_id, @natural_key, @title, @reason, @severity, @status, @owner, @source_json, @resolution_json, @created_at, @updated_at, @closed_at)`).run(record);
+    }
+    return { ...record, source: input.source || {}, resolution: input.resolution || {}, existed: Boolean(existing) };
+  }
+
+  function bootstrapAleGovernance(actor = 'local-admin') {
+    const series = db.prepare(`SELECT entity_id, canonical_name FROM entities WHERE vendor_id = 'ale' AND entity_type = 'series' ORDER BY canonical_name`).all();
+    const documentCount = db.prepare(`SELECT COUNT(*) AS count FROM documents WHERE vendor_id = 'ale'`).get().count;
+    if (!series.length || !documentCount) throw new Error('请先完成 ALE 只读导入，再创建 P0-2 治理试点任务。');
+    const created = { tasks: 0, reviews: 0, reusedTasks: 0, reusedReviews: 0 };
+    const run = db.transaction(() => {
+      const task = upsertResearchTask({
+        title: 'ALE OmniSwitch 纵向产品线基线审阅',
+        mode: 'vertical',
+        decisionQuestion: '基于已验证的 ALE OmniSwitch 官方 Data sheet 与 Order information 证据，确认哪些系列可进入后续产品定型、组合覆盖与横向对标分析。',
+        scope: { vendorId: 'ale', productDomain: 'wired_switching', entityType: 'series', entityIds: series.map((item) => item.entity_id), entityCount: series.length },
+        priority: 'high',
+        status: 'evidence_review',
+        baselineDescriptor: { importer: 'ale-readonly-importer', documentCount, evidenceRule: 'official_datasheet_and_embedded_order_information', initializedAt: timestamp() },
+        owner: actor,
+      });
+      if (task.existed) created.reusedTasks += 1; else created.tasks += 1;
+      const reviews = [
+        {
+          naturalKey: 'ale-omniswitch-core-technical-fields-p0-2', queueType: 'fact_quality', objectType: 'research_task', objectId: task.task_id, taskId: task.task_id,
+          title: '定义 ALE OmniSwitch 园区交换机核心技术字段导入范围',
+          reason: 'P0-1 当前导入的是资料与证据元数据；端口、PoE、性能、堆叠、OSPF 等用于产品定型的字段仍须通过受控抽取与人工证据审核进入事实层。',
+          severity: 'high', source: { requiredFieldPack: 'campus_switching_v1', expectedFields: ['downlink_ports', 'uplink_ports', 'poe_budget', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'] },
+        },
+        {
+          naturalKey: 'ale-omniswitch-baseline-evidence-approval-p0-2', queueType: 'evidence', objectType: 'research_task', objectId: task.task_id, taskId: task.task_id,
+          title: '审核 ALE OmniSwitch P0-1 资料基线与证据策略',
+          reason: '确认 15 份受控 Data sheet、SHA-256 基线和 Order information 证据策略可作为后续纵向研究任务的只读基线；该审核不修改原始资料。',
+          severity: 'medium', source: { documentCount, seriesCount: series.length, evidencePolicy: 'official_datasheet_and_embedded_order_information' },
+        },
+      ];
+      for (const input of reviews) {
+        const review = upsertReviewItem({ ...input, owner: actor, status: 'open' });
+        if (review.existed) created.reusedReviews += 1; else created.reviews += 1;
+      }
+      auditGovernance({ actor, action: 'bootstrap_ale_governance', objectType: 'research_task', objectId: task.task_id, after: { taskId: task.task_id, created, documentCount, seriesCount: series.length }, reason: '初始化 P0-2 ALE 纵向研究治理试点' });
+      return task;
+    });
+    const task = run();
+    return { task, created, metrics: governanceMetrics() };
+  }
+
+  function listResearchTasks() {
+    return db.prepare('SELECT * FROM research_tasks ORDER BY CASE status WHEN \'evidence_review\' THEN 0 WHEN \'collecting\' THEN 1 WHEN \'draft\' THEN 2 ELSE 3 END, updated_at DESC').all().map(taskRow);
+  }
+
+  function listReviewItems(filters = {}) {
+    const clauses = []; const params = [];
+    if (filters.status) { clauses.push('r.status = ?'); params.push(filters.status); }
+    if (filters.taskId) { clauses.push('r.task_id = ?'); params.push(filters.taskId); }
+    const sql = `SELECT r.*, t.title AS task_title FROM review_items r LEFT JOIN research_tasks t ON t.task_id = r.task_id ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''}
+      ORDER BY CASE r.status WHEN 'open' THEN 0 WHEN 'in_review' THEN 1 ELSE 2 END, CASE r.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, r.created_at DESC LIMIT 500`;
+    return db.prepare(sql).all(...params).map((row) => ({ ...reviewRow(row), taskTitle: row.task_title || '' }));
+  }
+
+  function updateReviewItem(reviewId, input = {}) {
+    const before = db.prepare('SELECT * FROM review_items WHERE review_id = ?').get(reviewId);
+    if (!before) throw new Error('未找到审核项。');
+    const allowed = new Set(['open', 'in_review', 'resolved', 'deferred', 'rejected']);
+    const status = input.status || before.status;
+    if (!allowed.has(status)) throw new Error('审核状态不合法。');
+    const reason = String(input.reason || '').trim();
+    if (['resolved', 'deferred', 'rejected'].includes(status) && !reason) throw new Error('关闭、延期或驳回审核项时必须说明理由。');
+    const after = { ...before, status, owner: String(input.owner || before.owner).slice(0, 120), resolution_json: json({ ...parseJson(before.resolution_json), ...(input.resolution || {}), reason: reason || parseJson(before.resolution_json).reason || '', updatedAt: timestamp() }), updated_at: timestamp(), closed_at: ['resolved', 'deferred', 'rejected'].includes(status) ? timestamp() : null };
+    db.prepare('UPDATE review_items SET status = ?, owner = ?, resolution_json = ?, updated_at = ?, closed_at = ? WHERE review_id = ?').run(after.status, after.owner, after.resolution_json, after.updated_at, after.closed_at, reviewId);
+    auditGovernance({ actor: input.actor || 'local-admin', action: 'review_item_update', objectType: 'review_item', objectId: reviewId, before: reviewRow(before), after: reviewRow(after), reason });
+    return reviewRow(after);
+  }
+
+  function governanceMetrics() {
+    const seriesCount = db.prepare(`SELECT COUNT(*) AS count FROM entities WHERE vendor_id = 'ale' AND entity_type = 'series'`).get().count;
+    const provenanceCodes = ['datasheet_sha256', 'evidence_policy', 'official_datasheet_url', 'official_file_name', 'official_product_page_url'];
+    const provenanceFacts = db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
+      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${provenanceCodes.map(() => '?').join(',')})`).get(...provenanceCodes).count;
+    const expectedProvenance = seriesCount * provenanceCodes.length;
+    const technicalCodes = ['downlink_ports', 'uplink_ports', 'poe_budget', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'];
+    const technicalFacts = db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
+      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${technicalCodes.map(() => '?').join(',')})`).get(...technicalCodes).count;
+    const expectedTechnical = seriesCount * technicalCodes.length;
+    const freshnessCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
+    const freshness = db.prepare(`SELECT COUNT(*) AS total, SUM(CASE WHEN r.collected_at >= ? THEN 1 ELSE 0 END) AS fresh FROM document_revisions r
+      JOIN documents d ON d.document_id = r.document_id WHERE d.vendor_id = 'ale' AND r.revision_state IN ('verified', 'verified_baseline')`).get(freshnessCutoff);
+    const queueRows = db.prepare(`SELECT severity, COUNT(*) AS count FROM review_items WHERE status IN ('open', 'in_review') GROUP BY severity`).all();
+    const openBySeverity = Object.fromEntries(queueRows.map((row) => [row.severity, row.count]));
+    const taskStates = db.prepare('SELECT status, COUNT(*) AS count FROM research_tasks GROUP BY status').all();
+    return {
+      generatedAt: timestamp(),
+      taskStates: Object.fromEntries(taskStates.map((row) => [row.status, row.count])),
+      fieldCoverage: {
+        provenance: { label: '资料与证据元数据', completed: provenanceFacts, expected: expectedProvenance, percent: expectedProvenance ? Math.round((provenanceFacts / expectedProvenance) * 1000) / 10 : 0, status: 'ready' },
+        technical: { label: '园区交换机核心技术字段', completed: technicalFacts, expected: expectedTechnical, percent: expectedTechnical ? Math.round((technicalFacts / expectedTechnical) * 1000) / 10 : 0, status: technicalFacts === expectedTechnical && expectedTechnical ? 'ready' : 'review_required', fieldPack: 'campus_switching_v1' },
+      },
+      freshness: { windowDays: 180, verifiedDocuments: freshness.total || 0, freshDocuments: freshness.fresh || 0, percent: freshness.total ? Math.round(((freshness.fresh || 0) / freshness.total) * 1000) / 10 : 0, status: freshness.total && freshness.fresh === freshness.total ? 'fresh' : 'review_required' },
+      reviewQueue: { openTotal: Object.values(openBySeverity).reduce((sum, value) => sum + value, 0), bySeverity: { high: openBySeverity.high || 0, medium: openBySeverity.medium || 0, low: openBySeverity.low || 0 } },
+    };
+  }
+
   function overview() {
     const count = (table) => db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count;
     const byType = db.prepare('SELECT entity_type AS type, COUNT(*) AS count FROM entities GROUP BY entity_type ORDER BY entity_type').all();
@@ -313,7 +528,7 @@ function createIntelligenceCore(dataDir) {
     return {
       schemaVersion: SCHEMA_VERSION,
       databasePath: dbPath,
-      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs') },
+      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items') },
       entitiesByType: byType,
       factsByPublicationState: byState,
       lastImport: lastImport ? { ...lastImport, sourceDescriptor: parseJson(lastImport.source_descriptor_json), summary: parseJson(lastImport.summary_json) } : null,
@@ -368,6 +583,10 @@ function createIntelligenceCore(dataDir) {
       facts: rows('facts').map((row) => ({ ...row, value: parseJson(row.normalized_value_json), conditions: parseJson(row.conditions_json) })),
       importRuns: listImportRuns(),
       importItems: rows('import_items').map((row) => ({ ...row, detail: parseJson(row.detail_json) })),
+      researchTasks: rows('research_tasks').map(taskRow),
+      reviewItems: rows('review_items').map(reviewRow),
+      governanceAudit: rows('governance_audit').map((row) => ({ ...row, before: parseJson(row.before_json), after: parseJson(row.after_json) })),
+      governanceMetrics: governanceMetrics(),
     };
   }
 
@@ -388,6 +607,11 @@ function createIntelligenceCore(dataDir) {
     entityDetail,
     listDocuments,
     listImportRuns,
+    bootstrapAleGovernance,
+    listResearchTasks,
+    listReviewItems,
+    updateReviewItem,
+    governanceMetrics,
     exportSnapshot,
     transaction: (fn) => db.transaction(fn)(),
     close: () => db.close(),

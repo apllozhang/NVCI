@@ -135,17 +135,41 @@ async function renderIntelligence() {
   const previewButton = document.getElementById('preview-ale-import');
   const executeButton = document.getElementById('execute-ale-import');
   const exportButton = document.getElementById('export-intelligence');
+  const governanceBootstrapButton = document.getElementById('bootstrap-ale-governance');
+  const governanceMetricsTarget = document.getElementById('governance-metrics');
+  const governanceTasksTarget = document.getElementById('governance-tasks');
+  const governanceReviewsTarget = document.getElementById('governance-reviews');
   let selectedEntityId = '';
 
   const load = async () => {
     try {
-      const [overview, entities, imports] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs')]);
+      const [overview, entities, imports, metrics, tasks, reviews] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs'), api('/api/intelligence/metrics'), api('/api/intelligence/research-tasks'), api('/api/intelligence/review-items')]);
       state.intelligenceOverview = overview;
       const c = overview.counts;
       statsTarget.innerHTML = [['实体', c.entities], ['资料', c.documents], ['资料修订', c.documentRevisions], ['证据对象', c.evidence], ['字段事实', c.facts], ['导入审计', c.importRuns]].map(([label, value]) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
       const latest = overview.lastImport;
       statusTarget.innerHTML = latest ? `<strong>最近导入：${esc(latest.status === 'completed' ? '已完成' : latest.status)}</strong><br><span class="muted">${fmtDate(latest.finished_at || latest.started_at)} · ${esc(latest.importer_name)} · ${latest.summary?.sourceCount || 0} 份受控资料</span><br><span class="small muted">数据库：${esc(overview.databasePath)}。SQLite 数据层与 PDF/manifest/来源配置隔离。</span>` : '<strong>尚未执行导入。</strong><br><span class="muted">可先预览 ALE 受控来源；执行后只会写入独立 SQLite 数据库。</span>';
       auditTarget.innerHTML = imports.length ? imports.slice(0, 5).map(item => `<div class="run-item ${item.status === 'failed' ? 'attention' : ''}"><div class="run-title">${esc(item.importer_name)} <span class="badge ${item.status === 'completed' ? 'good' : 'warn'}">${esc(item.status)}</span></div><div class="run-meta">${fmtDate(item.finished_at || item.started_at)} · ${item.summary?.sourceCount || 0} 份资料 · 新增实体 ${item.summary?.created?.entities || 0} / 复用 ${item.summary?.reused?.entities || 0}</div></div>`).join('') : '<p class="muted">尚无情报核心导入审计。</p>';
+      const coverage = metrics.fieldCoverage || {};
+      const metricCards = [
+        ['证据元数据覆盖率', `${coverage.provenance?.percent ?? 0}%`, coverage.provenance?.status === 'ready' ? 'accent' : 'warn'],
+        ['技术字段覆盖率', `${coverage.technical?.percent ?? 0}%`, coverage.technical?.status === 'ready' ? 'accent' : 'warn'],
+        ['资料新鲜度', `${metrics.freshness?.percent ?? 0}%`, metrics.freshness?.status === 'fresh' ? 'accent' : 'warn'],
+        ['待复核数量', metrics.reviewQueue?.openTotal ?? 0, (metrics.reviewQueue?.bySeverity?.high || 0) ? 'warn' : 'accent'],
+      ];
+      governanceMetricsTarget.innerHTML = metricCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div></div>`).join('');
+      governanceTasksTarget.innerHTML = tasks.length ? tasks.map(task => `<article class="governance-item"><div class="governance-title"><strong>${esc(task.title)}</strong><span class="badge ${task.status==='analysis_ready'?'good':'warn'}">${esc(task.status)}</span></div><p>${esc(task.decision_question)}</p><div class="run-meta">范围：${esc(task.scope?.entityCount || 0)} 个系列 · 优先级：${esc(task.priority)} · 负责人：${esc(task.owner)} · 更新：${fmtDate(task.updated_at)}</div></article>`).join('') : '<p class="muted">先完成 ALE 只读导入，再初始化研究任务。</p>';
+      governanceReviewsTarget.innerHTML = reviews.length ? reviews.map(review => `<article class="governance-item ${review.severity==='high'?'attention':''}"><div class="governance-title"><strong>${esc(review.title)}</strong><span class="badge ${review.severity==='high'?'warn':review.status==='resolved'?'good':'neutral'}">${esc(review.severity)} · ${esc(review.status)}</span></div><p>${esc(review.reason)}</p><div class="run-meta">队列：${esc(review.queue_type)} · 负责人：${esc(review.owner)} · ${review.taskTitle ? `任务：${esc(review.taskTitle)}` : ''}</div><div class="governance-actions">${review.status==='open'?`<button class="secondary review-update" data-review-id="${esc(review.review_id)}" data-review-status="in_review">开始复核</button>`:''}${['open','in_review'].includes(review.status)?`<button class="secondary review-update" data-review-id="${esc(review.review_id)}" data-review-status="deferred">延期</button><button class="primary review-update" data-review-id="${esc(review.review_id)}" data-review-status="resolved">确认关闭</button>`:''}</div></article>`).join('') : '<p class="muted">尚无审核项；初始化 ALE 治理试点后会生成字段质量与资料基线审核。</p>';
+      governanceBootstrapButton.disabled = entities.length === 0;
+      governanceBootstrapButton.textContent = tasks.length ? '重新核对 ALE 治理试点' : '初始化 ALE 治理试点';
+      governanceReviewsTarget.querySelectorAll('.review-update').forEach(button => button.addEventListener('click', async () => {
+        const status = button.dataset.reviewStatus; const reviewId = button.dataset.reviewId;
+        const requiresReason = ['resolved', 'deferred'].includes(status);
+        const reason = requiresReason ? window.prompt(status === 'resolved' ? '请填写关闭理由（将写入治理审计）：' : '请填写延期理由（将写入治理审计）：') : '';
+        if (requiresReason && !reason) return;
+        try { await api(`/api/intelligence/review-items/${encodeURIComponent(reviewId)}`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }); await refreshState(); await load(); notify('审核项已更新并写入治理审计。'); }
+        catch (error) { notify(error.message, true); }
+      }));
       seriesTarget.innerHTML = entities.length ? entities.map(entity => `<tr><td><button class="link-button intelligence-entity" data-entity-id="${esc(entity.entity_id)}">${esc(entity.canonical_name)}</button></td><td><span class="badge good">${esc(entity.source_state)}</span></td><td>${esc(entity.attributes?.evidencePolicy || '官方资料')}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">尚未导入 ALE 系列；请先执行只读导入。</td></tr>';
       seriesTarget.querySelectorAll('.intelligence-entity').forEach((button) => button.addEventListener('click', async () => {
         selectedEntityId = button.dataset.entityId;
@@ -162,6 +186,12 @@ async function renderIntelligence() {
   };
 
   exportButton.addEventListener('click', () => { window.location.href = '/api/intelligence/export'; });
+  governanceBootstrapButton.addEventListener('click', async () => {
+    governanceBootstrapButton.disabled = true; governanceBootstrapButton.textContent = '正在初始化…';
+    try { const result = await api('/api/intelligence/governance/ale-bootstrap', { method: 'POST', body: '{}' }); await refreshState(); await load(); notify(`ALE 治理试点已就绪：任务新增 ${result.created.tasks}，审核新增 ${result.created.reviews}。`); }
+    catch (error) { notify(error.message, true); }
+    finally { governanceBootstrapButton.disabled = false; }
+  });
   previewButton.addEventListener('click', async () => {
     previewButton.disabled = true; previewButton.textContent = '正在预览…';
     try { const plan = await api('/api/intelligence/imports/ale-readonly/preview', { method: 'POST', body: '{}' }); notify(`ALE 预览完成：${plan.sourceCount} 份受控资料，${plan.invalid.length} 条不完整。未写入数据库。`); await load(); }

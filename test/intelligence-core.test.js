@@ -40,7 +40,7 @@ test('ALE 只读导入创建独立情报核心并保持原始资料库未写入'
     const core = createIntelligenceCore(dataDir);
     try {
       const overview = core.overview();
-      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1 });
+      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1, researchTasks: 0, reviewItems: 0 });
       const series = core.listEntities({ vendorId: 'ale', entityType: 'series' });
       assert.equal(series.length, 15);
       const os6370 = series.find((item) => item.canonical_name === 'OmniSwitch 6370');
@@ -48,6 +48,41 @@ test('ALE 只读导入创建独立情报核心并保持原始资料库未写入'
       const detail = core.entityDetail(os6370.entity_id);
       assert.equal(detail.facts.length, 5);
       assert.ok(detail.facts.some((fact) => fact.field_code === 'datasheet_sha256' && fact.value.length === 64));
+    } finally { core.close(); }
+  } finally { cleanup(dataDir); }
+});
+
+test('P0-2 ALE 治理试点创建可审计任务、审核队列与质量指标，且重复初始化不会产生重复项', () => {
+  const dataDir = tempDataDir();
+  try {
+    executeAleReadOnlyImport({ dataDir });
+    const core = createIntelligenceCore(dataDir);
+    try {
+      const first = core.bootstrapAleGovernance();
+      assert.equal(first.created.tasks, 1);
+      assert.equal(first.created.reviews, 2);
+      assert.equal(first.metrics.fieldCoverage.provenance.percent, 100);
+      assert.equal(first.metrics.fieldCoverage.technical.percent, 0);
+      assert.equal(first.metrics.freshness.percent, 100);
+      assert.equal(first.metrics.reviewQueue.bySeverity.high, 1);
+      assert.equal(first.metrics.reviewQueue.bySeverity.medium, 1);
+      const task = core.listResearchTasks();
+      assert.equal(task.length, 1);
+      assert.equal(task[0].status, 'evidence_review');
+      const reviews = core.listReviewItems();
+      assert.equal(reviews.length, 2);
+      const started = core.updateReviewItem(reviews[0].review_id, { status: 'in_review', actor: 'local-admin' });
+      assert.equal(started.status, 'in_review');
+      assert.throws(() => core.updateReviewItem(reviews[0].review_id, { status: 'resolved', actor: 'local-admin' }), /必须说明理由/);
+      const second = core.bootstrapAleGovernance();
+      assert.equal(second.created.reusedTasks, 1);
+      assert.equal(second.created.reusedReviews, 2);
+      assert.equal(core.listResearchTasks().length, 1);
+      assert.equal(core.listReviewItems().length, 2);
+      const snapshot = core.exportSnapshot();
+      assert.equal(snapshot.researchTasks.length, 1);
+      assert.equal(snapshot.reviewItems.length, 2);
+      assert.ok(snapshot.governanceAudit.length >= 2);
     } finally { core.close(); }
   } finally { cleanup(dataDir); }
 });
@@ -61,7 +96,7 @@ test('重复 ALE 导入只新增导入审计，不重复创建产品、资料、
     assert.deepEqual(second.summary.reused, { entities: 17, documents: 15, revisions: 15, evidence: 75, facts: 75 });
     const core = createIntelligenceCore(dataDir);
     try {
-      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2 });
+      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0 });
       assert.equal(core.listImportRuns().length, 2);
     } finally { core.close(); }
   } finally { cleanup(dataDir); }
