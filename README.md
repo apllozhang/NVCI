@@ -17,7 +17,7 @@ NVCI 是一个面向局域网 NAS Docker 部署的图形化资料治理工作台
 | 受控字段事实（P0-3） | 对已批准的字段范围，将 ALE 官方 Data sheet / Order information 的字段证据写入独立 SQLite；预览不写入，执行必须确认，且保留证据定位与导入审计。 |
 | 三态覆盖率与审核 | 技术字段必须明确区分已核验、未披露和待复核；未披露不得推断为不支持，待复核项自动进入审核队列。 |
 
-> 当前发布版本：**v0.9.0**。P0-3 的详细门禁、字段范围和验收标准见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)。
+> 当前发布版本：**v0.9.1**。P0-3 的详细门禁、字段范围和验收标准见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)。
 
 ## NAS Docker 部署
 
@@ -119,11 +119,15 @@ docker compose up -d nvci-collector
 代码升级：
 
 ```bash
-git pull
-npm ci
-# 或只使用 Docker：
-docker compose up -d --build
+# NAS Docker 部署：不要在宿主机直接执行 npm ci。
+# v0.9.1 会在 Alpine 构建阶段强制 better-sqlite3 从源码编译，避开 prebuild-install 的外部预编译包等待。
+docker compose --progress=plain build nvci
+docker compose up -d --no-deps nvci
+docker compose up -d nvci-collector
+docker compose ps
 ```
+
+> Compose 服务名是 `nvci` 与 `nvci-collector`；`nvci-workbench` 是容器名，不可作为 `docker compose build` 的服务参数。
 
 备份：从界面导出 JSON 状态，并定期备份 Docker 卷或绑定的 `/data` 目录。回滚：保留旧镜像和 `99 历史归档`；不要删除历史 PDF 或覆盖已发布快照。
 

@@ -1,9 +1,14 @@
 FROM node:20-alpine AS dependencies
 WORKDIR /app
 # better-sqlite3 在 Alpine 上需要本地编译；该依赖只停留在构建阶段，运行时继续以 node 用户执行。
+# NAS 对 prebuild-install 的外部预编译包下载会发生长时间等待，因此明确跳过该路径并使用本地 node-gyp 编译。
 RUN apk add --no-cache python3 make g++
 COPY package*.json ./
-RUN npm ci --omit=dev --no-audit --no-fund
+ENV npm_config_build_from_source=true
+ENV npm_config_fetch_retries=1
+ENV npm_config_fetch_retry_mintimeout=3000
+ENV npm_config_fetch_retry_maxtimeout=10000
+RUN npm ci --omit=dev --no-audit --no-fund --foreground-scripts
 
 FROM node:20-alpine
 WORKDIR /app

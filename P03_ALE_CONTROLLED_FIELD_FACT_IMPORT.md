@@ -1,7 +1,9 @@
 # P0-3：ALE 受控字段事实导入
 
-> 发布版本：**NVCI v0.9.0**  
-> 试点对象：**ALE OmniSwitch 15 个系列**  
+> 发布版本：**NVCI v0.9.1**（包含 NAS Alpine 原生依赖构建修复）
+>
+> 试点对象：**ALE OmniSwitch 15 个系列**
+>
 > 字段范围：`campus_switching_v1` 的 17 个核心技术字段
 
 ## 1. 目的与边界
