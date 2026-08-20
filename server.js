@@ -52,7 +52,7 @@ const seedVendors = [
   { id: 'h3c', name: '新华三 H3C', products: '交换机、无线、路由器、技术文档', domains: ['h3c.com', 'download.h3c.com'], primaryEvidence: '官方产品页、download.h3c.com PDF、文档中心', strategy: '产品树发现；使用 curl 下载；技术文档须按版本与类型分层并验证匿名公开性。', healthUrl: 'https://www.h3c.com/cn/Products_And_Solution/InterConnect/Products/Switches/', status: 'verified', lastVerified: '2026-08-18' },
   { id: 'ruijie', name: '锐捷网络', products: '交换机、无线、云桌面、安全、路由器、软件、AI+数据', domains: ['ruijie.com.cn', 'yx.ruijie.com.cn'], primaryEvidence: '产品页资源 ID；预览/下载按钮实际 PDF', strategy: '先验证 PreviewFile；失败不得认定无资料；下载文件按钮签名 URL 需逐件、合规取得。', healthUrl: 'https://www.ruijie.com.cn/cp/', status: 'verified', lastVerified: '2026-08-19' },
   { id: 'huawei', name: '华为企业网络', products: '园区交换机、数据中心交换机、无线、路由器、安全、网络管控与分析', domains: ['e.huawei.com', 'e-file.huawei.com'], primaryEvidence: '企业网络资料页关联的官方 PDF；五道门禁', strategy: '从企业网络入口按类别、分组、系列与官方资料页建立资料链；仅在资料页实际关联且通过 PDF 签名、SHA-256、系列/型号匹配门禁后归档。', healthUrl: 'https://e.huawei.com/cn/solutions/enterprise-network', status: 'verified', lastVerified: '2026-08-19' },
-  { id: 'extreme', name: 'Extreme Networks', products: 'Wired Access（交换机）、Wireless Access（Wi-Fi 接入点）、Management（网络管理、分析与访问控制）', domains: ['extremenetworks.com', 'extr-p-001.sitecorecontenthub.cloud'], primaryEvidence: '官方系列产品页明确关联的 Data Sheet PDF', strategy: '从 Products 产品目录按 Wired Access、Wireless Access、Management 三大产品域发现系列；仅采集系列页 View Data Sheet 实际指向的 Sitecore Content Hub 官方 PDF，禁止猜测内容名称或版本参数。', healthUrl: 'https://www.extremenetworks.com/products', status: 'verified', lastVerified: '2026-08-20' }
+  { id: 'extreme', name: 'Extreme Networks', products: 'Wired Access（交换机）、Wireless Access（Wi-Fi 接入点）、Management（网络管理、分析与访问控制）', domains: ['extremenetworks.com', 'extr-p-001.sitecorecontenthub.cloud'], primaryEvidence: '官方系列产品页明确关联的 Data Sheet PDF', strategy: '从 Products 产品目录按 Wired Access、Wireless Access、Management 三大产品域发现系列；仅采集系列页 View Data Sheet 实际指向的 Sitecore Content Hub 官方 PDF，禁止猜测内容名称或版本参数。', healthUrl: 'https://www.extremenetworks.com/products', status: 'verified', lastVerified: '2026-08-20', seedRevision: '2026-08-20-extreme-three-domains-v2' }
 ];
 
 const seedProducts = [
@@ -74,9 +74,22 @@ const seedDocuments = [
 
 function mergeMissingSeedVendors() {
   const vendors = readJson('vendor-memories.json', []);
-  const knownIds = new Set(vendors.map((vendor) => vendor.id));
+  const seedById = new Map(seedVendors.map((vendor) => [vendor.id, vendor]));
+  let changed = false;
+  const reconciled = vendors.map((vendor) => {
+    const seed = seedById.get(vendor.id);
+    if (!seed) return vendor;
+    // 仅对带版本号的官方路径种子执行一次迁移，保留用户的其他自定义字段与所有非目标厂商。
+    if (seed.seedRevision && vendor.seedRevision !== seed.seedRevision) {
+      changed = true;
+      return { ...vendor, products: seed.products, domains: seed.domains, primaryEvidence: seed.primaryEvidence, strategy: seed.strategy, healthUrl: seed.healthUrl, status: seed.status, lastVerified: seed.lastVerified, seedRevision: seed.seedRevision };
+    }
+    return vendor;
+  });
+  const knownIds = new Set(reconciled.map((vendor) => vendor.id));
   const missing = seedVendors.filter((vendor) => !knownIds.has(vendor.id));
-  if (missing.length) writeJson('vendor-memories.json', [...vendors, ...missing]);
+  if (missing.length) { reconciled.push(...missing); changed = true; }
+  if (changed) writeJson('vendor-memories.json', reconciled);
 }
 
 function ensureStore() {

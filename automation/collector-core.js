@@ -12,6 +12,9 @@ const LIBRARY_DIR_NAME = 'library';
 const MAX_REDIRECTS = 3;
 const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 const STALE_CLAIM_MS = 5 * 60 * 1000;
+const RETIRED_BUNDLED_PROFILES = {
+  extreme_4000_series: { vendorId: 'extreme', reason: '已被 Extreme Wired Access 全量已验证 Data Sheet 配置替代。' },
+};
 
 function nowIso(now = new Date()) { return now.toISOString().replace(/\.\d{3}Z$/, 'Z'); }
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
@@ -214,8 +217,23 @@ function profilePaths(dataDir, profileId) {
 function ensureBundledProfiles(dataDir) {
   const profilesRoot = path.join(dataDir, PROFILE_DIR_NAME);
   ensureDir(profilesRoot);
-  if (!fs.existsSync(BUNDLED_PROFILE_DIR)) return [];
   const copied = [];
+  // 旧预置来源只移动到运行时归档目录，保留其 JSON、状态和历史快照；不删除用户资料。
+  const retiredRoot = path.join(dataDir, AUTOMATION_DIR_NAME, 'retired-source-profiles');
+  for (const [profileId, rule] of Object.entries(RETIRED_BUNDLED_PROFILES)) {
+    const destination = path.join(profilesRoot, `${profileId}.json`);
+    const current = readJson(destination, null);
+    if (current?.vendorId === rule.vendorId) {
+      ensureDir(retiredRoot);
+      const archivePath = path.join(retiredRoot, `${profileId}.json`);
+      if (!fs.existsSync(archivePath)) {
+        writeJsonAtomic(archivePath, { retiredAt: nowIso(), reason: rule.reason, profile: current });
+      }
+      fs.unlinkSync(destination);
+      copied.push(`${profileId}:retired`);
+    }
+  }
+  if (!fs.existsSync(BUNDLED_PROFILE_DIR)) return copied;
   for (const name of fs.readdirSync(BUNDLED_PROFILE_DIR)) {
     if (!name.endsWith('.json')) continue;
     const source = path.join(BUNDLED_PROFILE_DIR, name);
