@@ -504,8 +504,14 @@ function createIntelligenceCore(dataDir) {
     const aleTask = db.prepare(`SELECT task_id FROM research_tasks WHERE mode = 'vertical' AND title = 'ALE OmniSwitch 纵向产品线基线审阅'`).get();
     const activeScope = aleTask ? fieldScopes.activeTaskFieldPack(aleTask.task_id) : null;
     const technicalCodes = activeScope ? activeScope.items.filter((item) => item.selected).map((item) => item.fieldCode) : [];
-    const technicalFacts = technicalCodes.length ? db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
-      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${technicalCodes.map(() => '?').join(',')})`).get(...technicalCodes).count : 0;
+    const technicalRows = technicalCodes.length ? db.prepare(`SELECT f.publication_state AS state, COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
+      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${technicalCodes.map(() => '?').join(',')})
+      GROUP BY f.publication_state`).all(...technicalCodes) : [];
+    const technicalByState = Object.fromEntries(technicalRows.map((row) => [row.state, row.count]));
+    const technicalVerified = technicalByState.evidence_verified || 0;
+    const technicalNotDisclosed = technicalByState.not_disclosed || 0;
+    const technicalNeedsReview = technicalByState.needs_review || 0;
+    const technicalFacts = technicalVerified + technicalNotDisclosed + technicalNeedsReview;
     const expectedTechnical = seriesCount * technicalCodes.length;
     const freshnessCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
     const freshness = db.prepare(`SELECT COUNT(*) AS total, SUM(CASE WHEN r.collected_at >= ? THEN 1 ELSE 0 END) AS fresh FROM document_revisions r
@@ -518,7 +524,7 @@ function createIntelligenceCore(dataDir) {
       taskStates: Object.fromEntries(taskStates.map((row) => [row.status, row.count])),
       fieldCoverage: {
         provenance: { label: '资料与证据元数据', completed: provenanceFacts, expected: expectedProvenance, percent: expectedProvenance ? Math.round((provenanceFacts / expectedProvenance) * 1000) / 10 : 0, status: 'ready' },
-        technical: { label: activeScope ? activeScope.name : '待产品经理定义的技术字段范围', completed: technicalFacts, expected: expectedTechnical, percent: expectedTechnical ? Math.round((technicalFacts / expectedTechnical) * 1000) / 10 : 0, status: activeScope ? (technicalFacts === expectedTechnical && expectedTechnical ? 'ready' : 'review_required') : 'scope_pending', fieldPack: activeScope?.templateId || '', activeScopeVersion: activeScope?.versionNumber || 0, selectedFieldCodes: technicalCodes },
+        technical: { label: activeScope ? activeScope.name : '待产品经理定义的技术字段范围', completed: technicalFacts, expected: expectedTechnical, percent: expectedTechnical ? Math.round((technicalFacts / expectedTechnical) * 1000) / 10 : 0, verified: technicalVerified, notDisclosed: technicalNotDisclosed, needsReview: technicalNeedsReview, verifiedPercent: expectedTechnical ? Math.round((technicalVerified / expectedTechnical) * 1000) / 10 : 0, status: activeScope ? (technicalFacts === expectedTechnical && expectedTechnical ? (technicalNeedsReview ? 'review_required' : 'ready') : 'review_required') : 'scope_pending', fieldPack: activeScope?.templateId || '', activeScopeVersion: activeScope?.versionNumber || 0, selectedFieldCodes: technicalCodes },
       },
       fieldScope: { taskId: aleTask?.task_id || '', active: activeScope, pending: aleTask ? fieldScopes.fieldScopeSummary(aleTask.task_id).pending : null },
       freshness: { windowDays: 180, verifiedDocuments: freshness.total || 0, freshDocuments: freshness.fresh || 0, percent: freshness.total ? Math.round(((freshness.fresh || 0) / freshness.total) * 1000) / 10 : 0, status: freshness.total && freshness.fresh === freshness.total ? 'fresh' : 'review_required' },
@@ -617,6 +623,7 @@ function createIntelligenceCore(dataDir) {
     bootstrapAleGovernance,
     listResearchTasks,
     listReviewItems,
+    upsertReviewItem,
     updateReviewItem,
     governanceMetrics,
     listFieldTemplates: fieldScopes.listFieldTemplates,

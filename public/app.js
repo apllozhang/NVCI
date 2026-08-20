@@ -148,6 +148,9 @@ async function renderIntelligence() {
   const fieldScopeRationaleInput = document.getElementById('field-scope-rationale');
   const submitFieldScopeButton = document.getElementById('submit-field-scope');
   const approveFieldScopeButton = document.getElementById('approve-field-scope');
+  const previewAleFieldFactsButton = document.getElementById('preview-ale-field-facts');
+  const executeAleFieldFactsButton = document.getElementById('execute-ale-field-facts');
+  const aleFieldFactImportStatusTarget = document.getElementById('ale-field-fact-import-status');
   let selectedEntityId = '';
   let fieldScopeTaskId = '';
   let fieldScopeTemplateId = '';
@@ -167,11 +170,11 @@ async function renderIntelligence() {
       const coverage = metrics.fieldCoverage || {};
       const metricCards = [
         ['证据元数据覆盖率', `${coverage.provenance?.percent ?? 0}%`, coverage.provenance?.status === 'ready' ? 'accent' : 'warn'],
-        ['技术字段覆盖率', `${coverage.technical?.percent ?? 0}%`, coverage.technical?.status === 'ready' ? 'accent' : 'warn'],
+        ['技术字段记录覆盖率', `${coverage.technical?.percent ?? 0}%`, coverage.technical?.status === 'ready' ? 'accent' : 'warn'],
         ['资料新鲜度', `${metrics.freshness?.percent ?? 0}%`, metrics.freshness?.status === 'fresh' ? 'accent' : 'warn'],
         ['待复核数量', metrics.reviewQueue?.openTotal ?? 0, (metrics.reviewQueue?.bySeverity?.high || 0) ? 'warn' : 'accent'],
       ];
-      governanceMetricsTarget.innerHTML = metricCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div></div>`).join('');
+      governanceMetricsTarget.innerHTML = metricCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div>${label === '技术字段记录覆盖率' ? `<div class="small muted">已核验 ${coverage.technical?.verified || 0} · 未披露 ${coverage.technical?.notDisclosed || 0} · 待复核 ${coverage.technical?.needsReview || 0}</div>` : ''}</div>`).join('');
       const activeFieldPack = fieldPacks.find((pack) => pack.packStatus === 'active') || null;
       const pendingFieldPack = fieldPacks.find((pack) => pack.packStatus === 'pending_approval') || null;
       const selectedTemplate = fieldTemplates.find((template) => template.templateId === fieldScopeTemplateId) || null;
@@ -191,7 +194,7 @@ async function renderIntelligence() {
           : '<strong>尚未定义技术字段范围</strong><br><span>选择模板并提交后，系统生成独立审批项；批准后才生效。</span>';
       fieldScopeNextActionTarget.className = `field-scope-next-action ${activeFieldPack ? 'success' : pendingFieldPack ? 'attention' : 'muted'}`;
       fieldScopeNextActionTarget.innerHTML = activeFieldPack
-        ? `<strong>下一步：开始受控抽取与字段事实审核。</strong><span>技术字段覆盖率当前按 ${activeCount} 个生效字段 × ${tasks.find((task) => task.task_id === fieldScopeTaskId)?.scope?.entityCount || 0} 个系列计算；当前 ${coverage.technical?.completed || 0}/${coverage.technical?.expected || 0}，未披露必须保留“未披露”。如需调整范围，请创建新版本后重新审批。</span>`
+          ? `<strong>下一步：开始受控抽取与字段事实审核。</strong><span>技术字段记录覆盖率按 ${activeCount} 个生效字段 × ${tasks.find((task) => task.task_id === fieldScopeTaskId)?.scope?.entityCount || 0} 个系列计算；当前 ${coverage.technical?.completed || 0}/${coverage.technical?.expected || 0}。状态分布：已核验 ${coverage.technical?.verified || 0}，未披露 ${coverage.technical?.notDisclosed || 0}，待复核 ${coverage.technical?.needsReview || 0}。只有“已核验”可直接进入对标判断；未披露不得推断，待复核必须处理审核队列。如需调整范围，请创建新版本后重新审批。</span>`
         : pendingFieldPack
           ? '<strong>下一步：审核并批准待审字段范围。</strong><span>批准前不改变技术字段覆盖率，也不会触发自动抽取。</span>'
           : '<strong>下一步：选择字段并提交进入审批。</strong><span>提交后的字段包需要批准，才会成为研究任务的正式技术口径。</span>';
@@ -200,6 +203,13 @@ async function renderIntelligence() {
       approveFieldScopeButton.hidden = !pendingFieldPack;
       approveFieldScopeButton.disabled = !pendingFieldPack;
       approveFieldScopeButton.textContent = pendingFieldPack ? `批准待审字段范围 v${pendingFieldPack.versionNumber}` : '批准待审字段范围';
+      const fieldImportReady = Boolean(activeFieldPack && entities.length);
+      previewAleFieldFactsButton.disabled = !fieldImportReady;
+      executeAleFieldFactsButton.disabled = !fieldImportReady;
+      aleFieldFactImportStatusTarget.className = `callout ${fieldImportReady ? (coverage.technical?.needsReview ? 'attention' : 'success') : 'muted'}`;
+      aleFieldFactImportStatusTarget.innerHTML = fieldImportReady
+        ? `<strong>${coverage.technical?.completed ? '字段事实已可复核或重复执行' : '字段事实导入已就绪'}</strong><br><span>范围：${activeCount} 个已批准字段 × ${tasks.find((task) => task.task_id === fieldScopeTaskId)?.scope?.entityCount || 0} 个 ALE 系列。当前：已核验 ${coverage.technical?.verified || 0} · 未披露 ${coverage.technical?.notDisclosed || 0} · 待复核 ${coverage.technical?.needsReview || 0}。执行遵循幂等规则，重复执行不会重复创建字段事实。</span>`
+        : '<strong>导入门禁未满足。</strong><br><span>请依次完成 ALE 只读导入、初始化治理试点、提交并批准技术字段范围；系统不会绕过这些研究治理步骤直接写入字段事实。</span>';
       fieldScopeTaskSelect.onchange = () => { fieldScopeTaskId = fieldScopeTaskSelect.value; load(); };
       fieldScopeTemplateSelect.onchange = () => { fieldScopeTemplateId = fieldScopeTemplateSelect.value; load(); };
       submitFieldScopeButton.onclick = async () => {
@@ -243,7 +253,7 @@ async function renderIntelligence() {
         detailTarget.innerHTML = '<p class="muted">正在读取字段事实与证据…</p>';
         try {
           const entity = await api(`/api/intelligence/entities/${encodeURIComponent(selectedEntityId)}`);
-          detailTarget.innerHTML = `<div class="detail"><span>系列</span><strong>${esc(entity.canonical_name)}</strong></div><div class="detail"><span>资料状态</span><strong>${esc(entity.source_state)}</strong></div>${entity.facts.map(fact => `<div class="detail"><span>${esc(fact.field_code)}</span><strong>${esc(typeof fact.value === 'string' ? fact.value : JSON.stringify(fact.value))}</strong><small class="muted">${esc(fact.document_title || '')} · SHA-256 ${esc((fact.sha256 || '').slice(0, 12))}… · ${esc(fact.locator || '')}</small>${fact.source_url ? `<a href="${esc(fact.source_url)}" target="_blank" rel="noreferrer">官方证据链接</a>` : ''}</div>`).join('')}`;
+          detailTarget.innerHTML = `<div class="detail"><span>系列</span><strong>${esc(entity.canonical_name)}</strong></div><div class="detail"><span>资料状态</span><strong>${esc(entity.source_state)}</strong></div>${entity.facts.map(fact => `<div class="detail"><span>${esc(fact.field_code)}</span><strong>${esc(typeof fact.value === 'string' ? fact.value : JSON.stringify(fact.value))}</strong><span class="badge ${fact.publication_state === 'evidence_verified' ? 'good' : fact.publication_state === 'needs_review' ? 'warn' : 'neutral'}">${esc({ evidence_verified: '已核验', not_disclosed: '未披露', needs_review: '待复核' }[fact.publication_state] || fact.publication_state)}</span><small class="muted">${esc(fact.document_title || '')} · SHA-256 ${esc((fact.sha256 || '').slice(0, 12))}… · ${esc(fact.locator || '')}</small>${fact.source_url ? `<a href="${esc(fact.source_url)}" target="_blank" rel="noreferrer">官方证据链接</a>` : ''}</div>`).join('')}`;
         } catch (error) { detailTarget.innerHTML = `<p class="form-error">${esc(error.message)}</p>`; }
       }));
     } catch (error) {
@@ -258,6 +268,29 @@ async function renderIntelligence() {
     try { const result = await api('/api/intelligence/governance/ale-bootstrap', { method: 'POST', body: '{}' }); await refreshState(); await load(); notify(`ALE 治理试点已就绪：任务新增 ${result.created.tasks}，审核新增 ${result.created.reviews}。`); }
     catch (error) { notify(error.message, true); }
     finally { governanceBootstrapButton.disabled = false; }
+  });
+  previewAleFieldFactsButton.addEventListener('click', async () => {
+    previewAleFieldFactsButton.disabled = true; previewAleFieldFactsButton.textContent = '正在预览…';
+    try {
+      const plan = await api('/api/intelligence/imports/ale-field-facts/preview', { method: 'POST', body: '{}' });
+      const states = plan.summary?.states || {};
+      aleFieldFactImportStatusTarget.className = 'callout success';
+      aleFieldFactImportStatusTarget.innerHTML = `<strong>预览完成：未写入 SQLite。</strong><br><span>${plan.summary?.plannedFacts || 0} 项字段事实，覆盖 ${plan.summary?.series || 0} 个系列 × ${plan.summary?.fieldsPerSeries || 0} 个字段；已核验 ${states.evidence_verified || 0} · 未披露 ${states.not_disclosed || 0} · 待复核 ${states.needs_review || 0}。</span>`;
+      notify(`ALE 字段事实预览完成：${plan.summary?.plannedFacts || 0} 项，未写入数据库。`);
+    } catch (error) { notify(error.message, true); }
+    finally { previewAleFieldFactsButton.textContent = '预览 ALE 字段事实导入'; await load(); }
+  });
+  executeAleFieldFactsButton.addEventListener('click', async () => {
+    const confirmed = window.confirm('确认将已审计的 ALE 字段事实写入独立 SQLite 情报核心吗？\n\n本操作不会修改 PDF、来源配置、活动资料库或历史快照；待复核字段将自动进入审核队列。');
+    if (!confirmed) return;
+    executeAleFieldFactsButton.disabled = true; executeAleFieldFactsButton.textContent = '正在导入…';
+    try {
+      const result = await api('/api/intelligence/imports/ale-field-facts/execute', { method: 'POST', body: '{}' });
+      const states = result.summary?.states || {};
+      await refreshState(); await load();
+      notify(`字段事实导入完成：已核验 ${states.evidence_verified || 0} · 未披露 ${states.not_disclosed || 0} · 待复核 ${states.needs_review || 0}。`);
+    } catch (error) { notify(error.message, true); }
+    finally { executeAleFieldFactsButton.textContent = '执行字段事实导入'; }
   });
   previewButton.addEventListener('click', async () => {
     previewButton.disabled = true; previewButton.textContent = '正在预览…';

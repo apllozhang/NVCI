@@ -16,3 +16,9 @@ npm-debug.log*
 # Local deployment bundles
 nas-deploy/
 *.tar.gz
+
+# P0-3 local verification artifacts
+/.test-p03-api/
+/.test-p03-api-output/
+/.test-p03-field-import/
+/.visual-field-feedback/

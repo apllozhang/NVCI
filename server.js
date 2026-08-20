@@ -6,6 +6,8 @@ const { ensureBundledProfiles, enqueueRun, headTimeoutMs, listProfiles, profileP
 const { assertOfficialHttps, normalizeProfileDraft, profileDetail } = require('./automation/config-schema');
 const { createIntelligenceCore } = require('./intelligence-core');
 const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('./intelligence/ale-readonly-importer');
+const { planImport: planAleFieldFactImport, executeImport: executeAleFieldFactImport } = require('./intelligence/import-ale-field-facts');
+const ALE_FIELD_FACT_AUDIT_PATH = path.join(__dirname, 'intelligence', 'baselines', 'ale-field-facts-audit-2026-08-20.json');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
@@ -255,6 +257,28 @@ app.post('/api/intelligence/imports/ale-readonly/execute', auth, (req, res) => {
   try {
     const result = executeAleReadOnlyImport({ dataDir: DATA_DIR, profilePath: undefined, actor: 'local-admin' });
     addRun({ id: id('intelligence-import'), type: '情报核心 ALE 只读导入', status: 'completed', summary: `导入 ALE OmniSwitch 受控来源：${result.sourceCount} 份资料；仅写入 SQLite 情报核心。`, createdAt: now(), details: { importRunId: result.importRunId, summary: result.summary, databasePath: result.overview.databasePath } });
+    res.status(201).json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+// P0-3：字段事实仅从随版本发布的、已审计的官方证据基线写入；接口不接受任意客户端文件路径。
+app.post('/api/intelligence/imports/ale-field-facts/preview', auth, (req, res) => {
+  try {
+    const result = planAleFieldFactImport({ dataDir: DATA_DIR, auditPath: ALE_FIELD_FACT_AUDIT_PATH });
+    res.json({ mode: 'dry_run', ...result });
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/intelligence/imports/ale-field-facts/execute', auth, (req, res) => {
+  try {
+    const result = executeAleFieldFactImport({ dataDir: DATA_DIR, auditPath: ALE_FIELD_FACT_AUDIT_PATH, actor: 'local-admin' });
+    const states = result.summary?.states || {};
+    addRun({
+      id: id('intelligence-field-facts'),
+      type: 'P0-3 ALE 受控字段事实导入',
+      status: 'completed',
+      summary: `已受控写入 ${result.summary?.created?.facts || 0} 项字段事实；已核验 ${states.evidence_verified || 0}、未披露 ${states.not_disclosed || 0}、待复核 ${states.needs_review || 0}。`,
+      createdAt: now(),
+      details: { importRunId: result.importRunId, summary: result.summary, metrics: result.metrics },
+    });
     res.status(201).json(result);
   } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
 });

@@ -7,6 +7,8 @@ const path = require('path');
 const test = require('node:test');
 const { createIntelligenceCore } = require('../intelligence-core');
 const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('../intelligence/ale-readonly-importer');
+const { planImport: planAleFieldFactImport, executeImport: executeAleFieldFactImport } = require('../intelligence/import-ale-field-facts');
+const ALE_FIELD_FACT_AUDIT = path.join(__dirname, '..', 'intelligence', 'baselines', 'ale-field-facts-audit-2026-08-20.json');
 
 function tempDataDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'nvci-intelligence-'));
@@ -137,5 +139,39 @@ test('重复 ALE 导入只新增导入审计，不重复创建产品、资料、
       assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0 });
       assert.equal(core.listImportRuns().length, 2);
     } finally { core.close(); }
+  } finally { cleanup(dataDir); }
+});
+
+test('P0-3 受控字段事实导入遵守已批准范围，保留三态覆盖率并确保幂等', () => {
+  const dataDir = tempDataDir();
+  try {
+    executeAleReadOnlyImport({ dataDir });
+    const core = createIntelligenceCore(dataDir);
+    try {
+      const governance = core.bootstrapAleGovernance('p03-test');
+      const fieldCodes = core.getFieldTemplate('campus_switching_v1').items.map((item) => item.fieldCode);
+      const submitted = core.createTaskFieldPack({ taskId: governance.task.task_id, templateId: 'campus_switching_v1', selectedFieldCodes: fieldCodes, rationale: 'P0-3 回归测试范围。', actor: 'p03-test' });
+      core.approveTaskFieldPack(submitted.createdPackId, { actor: 'p03-test', reason: 'P0-3 回归测试批准范围。' });
+    } finally { core.close(); }
+    const plan = planAleFieldFactImport({ dataDir, auditPath: ALE_FIELD_FACT_AUDIT });
+    assert.equal(plan.summary.plannedFacts, 255);
+    assert.deepEqual(plan.summary.states, { evidence_verified: 223, not_disclosed: 31, needs_review: 1 });
+    const first = executeAleFieldFactImport({ dataDir, auditPath: ALE_FIELD_FACT_AUDIT, actor: 'p03-test' });
+    assert.equal(first.summary.created.facts, 255);
+    assert.equal(first.summary.created.reviews, 1);
+    const second = executeAleFieldFactImport({ dataDir, auditPath: ALE_FIELD_FACT_AUDIT, actor: 'p03-test' });
+    assert.equal(second.summary.created.facts, 0);
+    assert.equal(second.summary.reused.facts, 255);
+    const result = createIntelligenceCore(dataDir);
+    try {
+      const technical = result.governanceMetrics().fieldCoverage.technical;
+      assert.equal(technical.completed, 255);
+      assert.equal(technical.expected, 255);
+      assert.equal(technical.verified, 223);
+      assert.equal(technical.notDisclosed, 31);
+      assert.equal(technical.needsReview, 1);
+      assert.equal(result.listResearchTasks()[0].status, 'fact_review');
+      assert.equal(result.listReviewItems().filter((item) => item.queue_type === 'field_fact' && item.status === 'open').length, 1);
+    } finally { result.close(); }
   } finally { cleanup(dataDir); }
 });
