@@ -140,6 +140,7 @@ async function renderIntelligence() {
   const governanceTasksTarget = document.getElementById('governance-tasks');
   const governanceReviewsTarget = document.getElementById('governance-reviews');
   const fieldScopeStatusTarget = document.getElementById('field-scope-status');
+  const fieldScopeNextActionTarget = document.getElementById('field-scope-next-action');
   const fieldScopeTaskSelect = document.getElementById('field-scope-task');
   const fieldScopeTemplateSelect = document.getElementById('field-scope-template');
   const fieldScopeDescriptionTarget = document.getElementById('field-scope-template-description');
@@ -180,8 +181,23 @@ async function renderIntelligence() {
       fieldScopeTemplateSelect.innerHTML = fieldTemplates.length ? fieldTemplates.map((template) => `<option value="${esc(template.templateId)}" ${template.templateId===fieldScopeTemplateId?'selected':''}>${esc(template.name)}</option>`).join('') : '<option value="">暂无字段模板</option>';
       fieldScopeDescriptionTarget.innerHTML = selectedTemplate ? `<strong>${esc(selectedTemplate.name)}</strong><br><span class="muted">${esc(selectedTemplate.description)}</span>` : '请选择研究任务和字段模板。';
       fieldScopeItemsTarget.innerHTML = selectedTemplate ? selectedTemplate.items.map((item) => `<label class="field-scope-item"><input type="checkbox" data-field-code="${esc(item.fieldCode)}" ${selectedFieldCodes.has(item.fieldCode)?'checked':''} /><span><strong>${esc(item.label)}</strong><small>${esc(item.fieldCode)} · ${esc(item.fieldGroup)} · ${esc(item.valueType)}${item.unitHint?` · ${esc(item.unitHint)}`:''}</small><em>优先级：${esc(item.priority)}${item.required?' · 必选':''}</em><i>证据：${esc(item.evidenceRequirement)}</i></span></label>`).join('') : '<p class="muted">当前没有可用字段模板。</p>';
-      fieldScopeStatusTarget.innerHTML = activeFieldPack ? `<strong>已生效：v${activeFieldPack.versionNumber}</strong><br><span class="muted">${esc(activeFieldPack.name)} · ${activeFieldPack.items.filter((item) => item.selected).length} 个字段 · 批准人 ${esc(activeFieldPack.approvedBy || '')}</span>` : pendingFieldPack ? `<strong>待审批：v${pendingFieldPack.versionNumber}</strong><br><span class="muted">${esc(pendingFieldPack.name)} · ${pendingFieldPack.items.filter((item) => item.selected).length} 个字段；批准前不会改变覆盖率口径。</span>` : '<strong>尚未定义技术字段范围</strong><br><span class="muted">选择模板并提交后，系统生成独立审批项；批准后才生效。</span>';
+      const activeCount = activeFieldPack?.items.filter((item) => item.selected).length || 0;
+      const approvedAt = activeFieldPack?.approvedAt ? fmtDate(activeFieldPack.approvedAt) : '已记录';
+      fieldScopeStatusTarget.className = `callout ${activeFieldPack ? 'success' : pendingFieldPack ? 'attention' : 'muted'}`;
+      fieldScopeStatusTarget.innerHTML = activeFieldPack
+        ? `<strong>✓ 技术字段范围已批准生效：v${activeFieldPack.versionNumber}</strong><br><span>${esc(activeFieldPack.name)} · ${activeCount} 个字段 · 批准人 ${esc(activeFieldPack.approvedBy || 'local-admin')} · ${esc(approvedAt)}</span><br><span class="small">批准依据：${esc(activeFieldPack.rationale || '未填写')}</span>`
+        : pendingFieldPack
+          ? `<strong>待审批：v${pendingFieldPack.versionNumber}</strong><br><span>${esc(pendingFieldPack.name)} · ${pendingFieldPack.items.filter((item) => item.selected).length} 个字段；批准前不会改变覆盖率口径。</span>`
+          : '<strong>尚未定义技术字段范围</strong><br><span>选择模板并提交后，系统生成独立审批项；批准后才生效。</span>';
+      fieldScopeNextActionTarget.className = `field-scope-next-action ${activeFieldPack ? 'success' : pendingFieldPack ? 'attention' : 'muted'}`;
+      fieldScopeNextActionTarget.innerHTML = activeFieldPack
+        ? `<strong>下一步：开始受控抽取与字段事实审核。</strong><span>技术字段覆盖率当前按 ${activeCount} 个生效字段 × ${tasks.find((task) => task.task_id === fieldScopeTaskId)?.scope?.entityCount || 0} 个系列计算；当前 ${coverage.technical?.completed || 0}/${coverage.technical?.expected || 0}，未披露必须保留“未披露”。如需调整范围，请创建新版本后重新审批。</span>`
+        : pendingFieldPack
+          ? '<strong>下一步：审核并批准待审字段范围。</strong><span>批准前不改变技术字段覆盖率，也不会触发自动抽取。</span>'
+          : '<strong>下一步：选择字段并提交进入审批。</strong><span>提交后的字段包需要批准，才会成为研究任务的正式技术口径。</span>';
       submitFieldScopeButton.disabled = !fieldScopeTaskId || !selectedTemplate;
+      submitFieldScopeButton.textContent = activeFieldPack ? '创建字段范围新版本，进入审批' : '提交字段范围，进入审批';
+      approveFieldScopeButton.hidden = !pendingFieldPack;
       approveFieldScopeButton.disabled = !pendingFieldPack;
       approveFieldScopeButton.textContent = pendingFieldPack ? `批准待审字段范围 v${pendingFieldPack.versionNumber}` : '批准待审字段范围';
       fieldScopeTaskSelect.onchange = () => { fieldScopeTaskId = fieldScopeTaskSelect.value; load(); };
