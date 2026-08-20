@@ -139,11 +139,24 @@ async function renderIntelligence() {
   const governanceMetricsTarget = document.getElementById('governance-metrics');
   const governanceTasksTarget = document.getElementById('governance-tasks');
   const governanceReviewsTarget = document.getElementById('governance-reviews');
+  const fieldScopeStatusTarget = document.getElementById('field-scope-status');
+  const fieldScopeTaskSelect = document.getElementById('field-scope-task');
+  const fieldScopeTemplateSelect = document.getElementById('field-scope-template');
+  const fieldScopeDescriptionTarget = document.getElementById('field-scope-template-description');
+  const fieldScopeItemsTarget = document.getElementById('field-scope-items');
+  const fieldScopeRationaleInput = document.getElementById('field-scope-rationale');
+  const submitFieldScopeButton = document.getElementById('submit-field-scope');
+  const approveFieldScopeButton = document.getElementById('approve-field-scope');
   let selectedEntityId = '';
+  let fieldScopeTaskId = '';
+  let fieldScopeTemplateId = '';
 
   const load = async () => {
     try {
-      const [overview, entities, imports, metrics, tasks, reviews] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs'), api('/api/intelligence/metrics'), api('/api/intelligence/research-tasks'), api('/api/intelligence/review-items')]);
+      const [overview, entities, imports, metrics, tasks, reviews, fieldTemplates] = await Promise.all([api('/api/intelligence/overview'), api('/api/intelligence/entities?vendorId=ale&entityType=series'), api('/api/intelligence/import-runs'), api('/api/intelligence/metrics'), api('/api/intelligence/research-tasks'), api('/api/intelligence/review-items'), api('/api/intelligence/field-templates')]);
+      if (!tasks.some((task) => task.task_id === fieldScopeTaskId)) fieldScopeTaskId = tasks[0]?.task_id || '';
+      if (!fieldTemplates.some((template) => template.templateId === fieldScopeTemplateId)) fieldScopeTemplateId = fieldTemplates[0]?.templateId || '';
+      const fieldPacks = fieldScopeTaskId ? await api(`/api/intelligence/research-tasks/${encodeURIComponent(fieldScopeTaskId)}/field-packs`) : [];
       state.intelligenceOverview = overview;
       const c = overview.counts;
       statsTarget.innerHTML = [['实体', c.entities], ['资料', c.documents], ['资料修订', c.documentRevisions], ['证据对象', c.evidence], ['字段事实', c.facts], ['导入审计', c.importRuns]].map(([label, value]) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
@@ -158,6 +171,44 @@ async function renderIntelligence() {
         ['待复核数量', metrics.reviewQueue?.openTotal ?? 0, (metrics.reviewQueue?.bySeverity?.high || 0) ? 'warn' : 'accent'],
       ];
       governanceMetricsTarget.innerHTML = metricCards.map(([label, value, tone]) => `<div class="stat-card"><div class="label">${esc(label)}</div><div class="value" style="color:${tone==='warn'?'var(--warn)':'var(--accent)'}">${esc(value)}</div></div>`).join('');
+      const activeFieldPack = fieldPacks.find((pack) => pack.packStatus === 'active') || null;
+      const pendingFieldPack = fieldPacks.find((pack) => pack.packStatus === 'pending_approval') || null;
+      const selectedTemplate = fieldTemplates.find((template) => template.templateId === fieldScopeTemplateId) || null;
+      const inheritedPack = [pendingFieldPack, activeFieldPack].find((pack) => pack?.templateId === fieldScopeTemplateId) || null;
+      const selectedFieldCodes = new Set(inheritedPack ? inheritedPack.items.filter((item) => item.selected).map((item) => item.fieldCode) : (selectedTemplate?.items || []).map((item) => item.fieldCode));
+      fieldScopeTaskSelect.innerHTML = tasks.length ? tasks.map((task) => `<option value="${esc(task.task_id)}" ${task.task_id===fieldScopeTaskId?'selected':''}>${esc(task.title)} · ${esc(task.status)}</option>`).join('') : '<option value="">请先初始化研究任务</option>';
+      fieldScopeTemplateSelect.innerHTML = fieldTemplates.length ? fieldTemplates.map((template) => `<option value="${esc(template.templateId)}" ${template.templateId===fieldScopeTemplateId?'selected':''}>${esc(template.name)}</option>`).join('') : '<option value="">暂无字段模板</option>';
+      fieldScopeDescriptionTarget.innerHTML = selectedTemplate ? `<strong>${esc(selectedTemplate.name)}</strong><br><span class="muted">${esc(selectedTemplate.description)}</span>` : '请选择研究任务和字段模板。';
+      fieldScopeItemsTarget.innerHTML = selectedTemplate ? selectedTemplate.items.map((item) => `<label class="field-scope-item"><input type="checkbox" data-field-code="${esc(item.fieldCode)}" ${selectedFieldCodes.has(item.fieldCode)?'checked':''} /><span><strong>${esc(item.label)}</strong><small>${esc(item.fieldCode)} · ${esc(item.fieldGroup)} · ${esc(item.valueType)}${item.unitHint?` · ${esc(item.unitHint)}`:''}</small><em>优先级：${esc(item.priority)}${item.required?' · 必选':''}</em><i>证据：${esc(item.evidenceRequirement)}</i></span></label>`).join('') : '<p class="muted">当前没有可用字段模板。</p>';
+      fieldScopeStatusTarget.innerHTML = activeFieldPack ? `<strong>已生效：v${activeFieldPack.versionNumber}</strong><br><span class="muted">${esc(activeFieldPack.name)} · ${activeFieldPack.items.filter((item) => item.selected).length} 个字段 · 批准人 ${esc(activeFieldPack.approvedBy || '')}</span>` : pendingFieldPack ? `<strong>待审批：v${pendingFieldPack.versionNumber}</strong><br><span class="muted">${esc(pendingFieldPack.name)} · ${pendingFieldPack.items.filter((item) => item.selected).length} 个字段；批准前不会改变覆盖率口径。</span>` : '<strong>尚未定义技术字段范围</strong><br><span class="muted">选择模板并提交后，系统生成独立审批项；批准后才生效。</span>';
+      submitFieldScopeButton.disabled = !fieldScopeTaskId || !selectedTemplate;
+      approveFieldScopeButton.disabled = !pendingFieldPack;
+      approveFieldScopeButton.textContent = pendingFieldPack ? `批准待审字段范围 v${pendingFieldPack.versionNumber}` : '批准待审字段范围';
+      fieldScopeTaskSelect.onchange = () => { fieldScopeTaskId = fieldScopeTaskSelect.value; load(); };
+      fieldScopeTemplateSelect.onchange = () => { fieldScopeTemplateId = fieldScopeTemplateSelect.value; load(); };
+      submitFieldScopeButton.onclick = async () => {
+        const selected = [...fieldScopeItemsTarget.querySelectorAll('input[data-field-code]:checked')].map((input) => input.dataset.fieldCode);
+        if (!selected.length) return notify('请至少选择一个需要进入事实层的技术字段。', true);
+        submitFieldScopeButton.disabled = true; submitFieldScopeButton.textContent = '正在提交…';
+        try {
+          const result = await api(`/api/intelligence/research-tasks/${encodeURIComponent(fieldScopeTaskId)}/field-packs`, { method: 'POST', body: JSON.stringify({ templateId: fieldScopeTemplateId, selectedFieldCodes: selected, rationale: fieldScopeRationaleInput.value }) });
+          fieldScopeRationaleInput.value = '';
+          await refreshState(); await load();
+          notify(`字段范围已提交：v${result.pending?.versionNumber || ''}，等待批准后才生效。`);
+        } catch (error) { notify(error.message, true); }
+        finally { submitFieldScopeButton.textContent = '提交字段范围，进入审批'; }
+      };
+      approveFieldScopeButton.onclick = async () => {
+        if (!pendingFieldPack) return;
+        const reason = window.prompt(`请填写批准 ${pendingFieldPack.name} 的决策依据。批准后将作为字段覆盖率和后续受控抽取的统一口径：`);
+        if (!reason) return;
+        approveFieldScopeButton.disabled = true; approveFieldScopeButton.textContent = '正在批准…';
+        try {
+          await api(`/api/intelligence/field-packs/${encodeURIComponent(pendingFieldPack.taskFieldPackId)}/approve`, { method: 'POST', body: JSON.stringify({ reason }) });
+          await refreshState(); await load();
+          notify('技术字段范围已批准生效；覆盖率口径已更新。');
+        } catch (error) { notify(error.message, true); }
+      };
       governanceTasksTarget.innerHTML = tasks.length ? tasks.map(task => `<article class="governance-item"><div class="governance-title"><strong>${esc(task.title)}</strong><span class="badge ${task.status==='analysis_ready'?'good':'warn'}">${esc(task.status)}</span></div><p>${esc(task.decision_question)}</p><div class="run-meta">范围：${esc(task.scope?.entityCount || 0)} 个系列 · 优先级：${esc(task.priority)} · 负责人：${esc(task.owner)} · 更新：${fmtDate(task.updated_at)}</div></article>`).join('') : '<p class="muted">先完成 ALE 只读导入，再初始化研究任务。</p>';
       governanceReviewsTarget.innerHTML = reviews.length ? reviews.map(review => `<article class="governance-item ${review.severity==='high'?'attention':''}"><div class="governance-title"><strong>${esc(review.title)}</strong><span class="badge ${review.severity==='high'?'warn':review.status==='resolved'?'good':'neutral'}">${esc(review.severity)} · ${esc(review.status)}</span></div><p>${esc(review.reason)}</p><div class="run-meta">队列：${esc(review.queue_type)} · 负责人：${esc(review.owner)} · ${review.taskTitle ? `任务：${esc(review.taskTitle)}` : ''}</div><div class="governance-actions">${review.status==='open'?`<button class="secondary review-update" data-review-id="${esc(review.review_id)}" data-review-status="in_review">开始复核</button>`:''}${['open','in_review'].includes(review.status)?`<button class="secondary review-update" data-review-id="${esc(review.review_id)}" data-review-status="deferred">延期</button><button class="primary review-update" data-review-id="${esc(review.review_id)}" data-review-status="resolved">确认关闭</button>`:''}</div></article>`).join('') : '<p class="muted">尚无审核项；初始化 ALE 治理试点后会生成字段质量与资料基线审核。</p>';
       governanceBootstrapButton.disabled = entities.length === 0;

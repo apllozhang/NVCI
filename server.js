@@ -214,8 +214,24 @@ app.get('/api/intelligence/documents', auth, (req, res) => res.json(intelligence
 app.get('/api/intelligence/import-runs', auth, (req, res) => res.json(intelligence.listImportRuns()));
 app.get('/api/intelligence/export', auth, (req, res) => { res.setHeader('Content-Disposition', 'attachment; filename="nvci-intelligence-export.json"'); res.json(intelligence.exportSnapshot()); });
 // P0-2 治理 API：任务与审核仅写入 SQLite 情报核心，不回写 PDF、来源配置或既有资料库 JSON。
-app.get('/api/intelligence/metrics', auth, (req, res) => res.json(intelligence.governanceMetrics()));
-app.get('/api/intelligence/research-tasks', auth, (req, res) => res.json(intelligence.listResearchTasks()));
+	app.get('/api/intelligence/metrics', auth, (req, res) => res.json(intelligence.governanceMetrics()));
+	app.get('/api/intelligence/field-templates', auth, (req, res) => res.json(intelligence.listFieldTemplates()));
+	app.get('/api/intelligence/research-tasks/:taskId/field-packs', auth, (req, res) => res.json(intelligence.listTaskFieldPacks(req.params.taskId)));
+	app.post('/api/intelligence/research-tasks/:taskId/field-packs', auth, (req, res) => {
+	  try {
+	    const result = intelligence.createTaskFieldPack({ taskId: req.params.taskId, templateId: String(req.body?.templateId || '').slice(0, 128), selectedFieldCodes: Array.isArray(req.body?.selectedFieldCodes) ? req.body.selectedFieldCodes.slice(0, 100) : [], rationale: String(req.body?.rationale || '').slice(0, 2000), actor: 'local-admin' });
+	    addRun({ id: id('intelligence-field-scope'), type: '产品经理技术字段范围提交', status: 'completed', summary: `已为研究任务提交技术字段范围，等待批准后生效。`, createdAt: now(), details: { taskId: req.params.taskId, templateId: req.body?.templateId, createdPackId: result.createdPackId } });
+	    res.status(201).json(result);
+	  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+	});
+	app.post('/api/intelligence/field-packs/:packId/approve', auth, (req, res) => {
+	  try {
+	    const result = intelligence.approveTaskFieldPack(req.params.packId, { reason: String(req.body?.reason || '').slice(0, 2000), actor: 'local-admin' });
+	    addRun({ id: id('intelligence-field-scope-approve'), type: '产品经理技术字段范围批准', status: 'completed', summary: `已批准技术字段范围；后续字段覆盖率将按该范围计算。`, createdAt: now(), details: { packId: req.params.packId, activePackId: result.active?.taskFieldPackId || '' } });
+	    res.json(result);
+	  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+	});
+	app.get('/api/intelligence/research-tasks', auth, (req, res) => res.json(intelligence.listResearchTasks()));
 app.get('/api/intelligence/review-items', auth, (req, res) => res.json(intelligence.listReviewItems({ status: String(req.query.status || '').slice(0, 32), taskId: String(req.query.taskId || '').slice(0, 128) })));
 app.post('/api/intelligence/governance/ale-bootstrap', auth, (req, res) => {
   try {

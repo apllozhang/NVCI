@@ -4,8 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Database = require('better-sqlite3');
+const { createFieldScopeManager } = require('./intelligence/field-scope');
 
-const SCHEMA_VERSION = 'p0-2.0';
+const SCHEMA_VERSION = 'p0-2.1';
 
 function timestamp() { return new Date().toISOString(); }
 function json(value) { return JSON.stringify(value ?? {}); }
@@ -376,7 +377,7 @@ function createIntelligenceCore(dataDir) {
       decision_question: input.decisionQuestion,
       scope_json: json(input.scope || {}),
       owner: input.owner || 'local-admin',
-      status: input.status || existing?.status || 'draft',
+      status: existing?.status || input.status || 'draft',
       priority: input.priority || existing?.priority || 'medium',
       baseline_descriptor_json: json(input.baselineDescriptor || {}),
       created_at: existing?.created_at || timestamp(),
@@ -405,7 +406,7 @@ function createIntelligenceCore(dataDir) {
       title: input.title,
       reason: input.reason || '',
       severity: input.severity || 'medium',
-      status: input.status || existing?.status || 'open',
+      status: existing?.status || input.status || 'open',
       owner: input.owner || existing?.owner || 'local-admin',
       source_json: json(input.source || {}),
       resolution_json: json(input.resolution || (existing ? parseJson(existing.resolution_json) : {})),
@@ -422,6 +423,8 @@ function createIntelligenceCore(dataDir) {
     }
     return { ...record, source: input.source || {}, resolution: input.resolution || {}, existed: Boolean(existing) };
   }
+
+  const fieldScopes = createFieldScopeManager({ db, stableId, timestamp, json, parseJson, auditGovernance, upsertReviewItem });
 
   function bootstrapAleGovernance(actor = 'local-admin') {
     const series = db.prepare(`SELECT entity_id, canonical_name FROM entities WHERE vendor_id = 'ale' AND entity_type = 'series' ORDER BY canonical_name`).all();
@@ -498,9 +501,11 @@ function createIntelligenceCore(dataDir) {
     const provenanceFacts = db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
       WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${provenanceCodes.map(() => '?').join(',')})`).get(...provenanceCodes).count;
     const expectedProvenance = seriesCount * provenanceCodes.length;
-    const technicalCodes = ['downlink_ports', 'uplink_ports', 'poe_budget', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'];
-    const technicalFacts = db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
-      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${technicalCodes.map(() => '?').join(',')})`).get(...technicalCodes).count;
+    const aleTask = db.prepare(`SELECT task_id FROM research_tasks WHERE mode = 'vertical' AND title = 'ALE OmniSwitch 纵向产品线基线审阅'`).get();
+    const activeScope = aleTask ? fieldScopes.activeTaskFieldPack(aleTask.task_id) : null;
+    const technicalCodes = activeScope ? activeScope.items.filter((item) => item.selected).map((item) => item.fieldCode) : [];
+    const technicalFacts = technicalCodes.length ? db.prepare(`SELECT COUNT(DISTINCT f.entity_id || '|' || f.field_code) AS count FROM facts f JOIN entities e ON e.entity_id = f.entity_id
+      WHERE e.vendor_id = 'ale' AND e.entity_type = 'series' AND f.field_code IN (${technicalCodes.map(() => '?').join(',')})`).get(...technicalCodes).count : 0;
     const expectedTechnical = seriesCount * technicalCodes.length;
     const freshnessCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
     const freshness = db.prepare(`SELECT COUNT(*) AS total, SUM(CASE WHEN r.collected_at >= ? THEN 1 ELSE 0 END) AS fresh FROM document_revisions r
@@ -513,8 +518,9 @@ function createIntelligenceCore(dataDir) {
       taskStates: Object.fromEntries(taskStates.map((row) => [row.status, row.count])),
       fieldCoverage: {
         provenance: { label: '资料与证据元数据', completed: provenanceFacts, expected: expectedProvenance, percent: expectedProvenance ? Math.round((provenanceFacts / expectedProvenance) * 1000) / 10 : 0, status: 'ready' },
-        technical: { label: '园区交换机核心技术字段', completed: technicalFacts, expected: expectedTechnical, percent: expectedTechnical ? Math.round((technicalFacts / expectedTechnical) * 1000) / 10 : 0, status: technicalFacts === expectedTechnical && expectedTechnical ? 'ready' : 'review_required', fieldPack: 'campus_switching_v1' },
+        technical: { label: activeScope ? activeScope.name : '待产品经理定义的技术字段范围', completed: technicalFacts, expected: expectedTechnical, percent: expectedTechnical ? Math.round((technicalFacts / expectedTechnical) * 1000) / 10 : 0, status: activeScope ? (technicalFacts === expectedTechnical && expectedTechnical ? 'ready' : 'review_required') : 'scope_pending', fieldPack: activeScope?.templateId || '', activeScopeVersion: activeScope?.versionNumber || 0, selectedFieldCodes: technicalCodes },
       },
+      fieldScope: { taskId: aleTask?.task_id || '', active: activeScope, pending: aleTask ? fieldScopes.fieldScopeSummary(aleTask.task_id).pending : null },
       freshness: { windowDays: 180, verifiedDocuments: freshness.total || 0, freshDocuments: freshness.fresh || 0, percent: freshness.total ? Math.round(((freshness.fresh || 0) / freshness.total) * 1000) / 10 : 0, status: freshness.total && freshness.fresh === freshness.total ? 'fresh' : 'review_required' },
       reviewQueue: { openTotal: Object.values(openBySeverity).reduce((sum, value) => sum + value, 0), bySeverity: { high: openBySeverity.high || 0, medium: openBySeverity.medium || 0, low: openBySeverity.low || 0 } },
     };
@@ -528,7 +534,7 @@ function createIntelligenceCore(dataDir) {
     return {
       schemaVersion: SCHEMA_VERSION,
       databasePath: dbPath,
-      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items') },
+      counts: { entities: count('entities'), documents: count('documents'), documentRevisions: count('document_revisions'), evidence: count('evidence'), facts: count('facts'), importRuns: count('import_runs'), researchTasks: count('research_tasks'), reviewItems: count('review_items'), fieldTemplates: count('field_templates'), taskFieldPacks: count('task_field_packs') },
       entitiesByType: byType,
       factsByPublicationState: byState,
       lastImport: lastImport ? { ...lastImport, sourceDescriptor: parseJson(lastImport.source_descriptor_json), summary: parseJson(lastImport.summary_json) } : null,
@@ -587,6 +593,7 @@ function createIntelligenceCore(dataDir) {
       reviewItems: rows('review_items').map(reviewRow),
       governanceAudit: rows('governance_audit').map((row) => ({ ...row, before: parseJson(row.before_json), after: parseJson(row.after_json) })),
       governanceMetrics: governanceMetrics(),
+      ...fieldScopes.snapshotTables(),
     };
   }
 
@@ -612,6 +619,12 @@ function createIntelligenceCore(dataDir) {
     listReviewItems,
     updateReviewItem,
     governanceMetrics,
+    listFieldTemplates: fieldScopes.listFieldTemplates,
+    getFieldTemplate: fieldScopes.getFieldTemplate,
+    listTaskFieldPacks: fieldScopes.listTaskFieldPacks,
+    fieldScopeSummary: fieldScopes.fieldScopeSummary,
+    createTaskFieldPack: fieldScopes.createTaskFieldPack,
+    approveTaskFieldPack: fieldScopes.approveTaskFieldPack,
     exportSnapshot,
     transaction: (fn) => db.transaction(fn)(),
     close: () => db.close(),

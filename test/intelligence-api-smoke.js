@@ -72,6 +72,20 @@ async function run() {
     assert.equal(reviews.payload.length, 2);
     const inReview = await request(cookie, 'PATCH', `/api/intelligence/review-items/${encodeURIComponent(reviews.payload[0].review_id)}`, { status: 'in_review' });
     assert.equal(inReview.payload.status, 'in_review');
+    const templates = await request(cookie, 'GET', '/api/intelligence/field-templates');
+    assert.equal(templates.payload.length, 1);
+    assert.equal(templates.payload[0].templateId, 'campus_switching_v1');
+    const selectedFieldCodes = ['downlink_ports', 'uplink_ports', 'poe_support', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'];
+    const submittedScope = await request(cookie, 'POST', `/api/intelligence/research-tasks/${encodeURIComponent(tasks.payload[0].task_id)}/field-packs`, { templateId: 'campus_switching_v1', selectedFieldCodes, rationale: 'API 验证：首批字段用于 ALE 园区交换机定型与 Aruba CX 对标。' });
+    assert.equal(submittedScope.payload.pending.packStatus, 'pending_approval');
+    assert.equal(submittedScope.payload.pending.items.filter((item) => item.selected).length, selectedFieldCodes.length);
+    const approvedScope = await request(cookie, 'POST', `/api/intelligence/field-packs/${encodeURIComponent(submittedScope.payload.createdPackId)}/approve`, { reason: 'API 验证：产品经理确认字段范围、官方资料证据门槛和优先级。' });
+    assert.equal(approvedScope.payload.active.packStatus, 'active');
+    const scopeMetrics = await request(cookie, 'GET', '/api/intelligence/metrics');
+    assert.equal(scopeMetrics.payload.fieldCoverage.technical.expected, 15 * selectedFieldCodes.length);
+    assert.equal(scopeMetrics.payload.fieldScope.active.taskFieldPackId, submittedScope.payload.createdPackId);
+    const scopePacks = await request(cookie, 'GET', `/api/intelligence/research-tasks/${encodeURIComponent(tasks.payload[0].task_id)}/field-packs`);
+    assert.equal(scopePacks.payload[0].packStatus, 'active');
     const imports = await request(cookie, 'GET', '/api/intelligence/import-runs');
     assert.equal(imports.payload.length, 1);
     const snapshot = await request(cookie, 'GET', '/api/intelligence/export');
@@ -81,8 +95,11 @@ async function run() {
     assert.equal(snapshot.payload.evidence.length, 75);
     assert.equal(snapshot.payload.facts.length, 75);
     assert.equal(snapshot.payload.researchTasks.length, 1);
-    assert.equal(snapshot.payload.reviewItems.length, 2);
-    assert.ok(snapshot.payload.governanceAudit.length >= 2);
+    assert.equal(snapshot.payload.reviewItems.length, 3);
+    assert.equal(snapshot.payload.fieldTemplates.length, 1);
+    assert.equal(snapshot.payload.taskFieldPacks.length, 1);
+    assert.equal(snapshot.payload.taskFieldPackItems.filter((item) => item.selected).length, selectedFieldCodes.length);
+    assert.ok(snapshot.payload.governanceAudit.length >= 4);
 
     const repeated = await request(cookie, 'POST', '/api/intelligence/imports/ale-readonly/execute', {});
     assert.equal(repeated.payload.summary.created.documents, 0);
