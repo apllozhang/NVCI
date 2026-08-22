@@ -42,7 +42,7 @@ test('ALE 只读导入创建独立情报核心并保持原始资料库未写入'
     const core = createIntelligenceCore(dataDir);
     try {
       const overview = core.overview();
-      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
+      assert.deepEqual(overview.counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 1, researchTasks: 0, reviewItems: 0, fieldTemplates: 4, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
       const series = core.listEntities({ vendorId: 'ale', entityType: 'series' });
       assert.equal(series.length, 15);
       const os6370 = series.find((item) => item.canonical_name === 'OmniSwitch 6370');
@@ -98,9 +98,10 @@ test('产品经理可通过字段模板提交并批准 ALE 技术字段范围，
       core.bootstrapAleGovernance();
       const task = core.listResearchTasks()[0];
       const templates = core.listFieldTemplates();
-      assert.equal(templates.length, 1);
-      assert.equal(templates[0].templateId, 'campus_switching_v1');
-      assert.ok(templates[0].items.some((item) => item.fieldCode === 'ospf_support'));
+      assert.equal(templates.length, 4);
+      const campusTemplate = templates.find((template) => template.templateId === 'campus_switching_v1');
+      assert.ok(campusTemplate);
+      assert.ok(campusTemplate.items.some((item) => item.fieldCode === 'ospf_support'));
       const selected = ['downlink_ports', 'uplink_ports', 'poe_support', 'poe_budget', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'];
       const submitted = core.createTaskFieldPack({ taskId: task.task_id, templateId: 'campus_switching_v1', selectedFieldCodes: selected, rationale: '首批字段用于 ALE 园区接入与汇聚产品定型、组合覆盖和 Aruba CX 横向对标。', actor: 'local-admin' });
       assert.equal(submitted.pending.packStatus, 'pending_approval');
@@ -119,7 +120,7 @@ test('产品经理可通过字段模板提交并批准 ALE 技术字段范围，
       assert.equal(reviews.filter((item) => item.status === 'resolved').length, 2);
       assert.equal(metrics.reviewQueue.openTotal, 1);
       const snapshot = core.exportSnapshot();
-      assert.equal(snapshot.fieldTemplates.length, 1);
+      assert.equal(snapshot.fieldTemplates.length, 4);
       assert.equal(snapshot.taskFieldPacks.length, 1);
       assert.equal(snapshot.taskFieldPackItems.filter((item) => item.selected).length, selected.length);
       assert.ok(snapshot.governanceAudit.some((item) => item.action === 'task_field_pack_approved'));
@@ -136,7 +137,7 @@ test('重复 ALE 导入只新增导入审计，不重复创建产品、资料、
     assert.deepEqual(second.summary.reused, { entities: 17, documents: 15, revisions: 15, evidence: 75, facts: 75 });
     const core = createIntelligenceCore(dataDir);
     try {
-      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0, fieldTemplates: 1, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
+      assert.deepEqual(core.overview().counts, { entities: 17, documents: 15, documentRevisions: 15, evidence: 75, facts: 75, importRuns: 2, researchTasks: 0, reviewItems: 0, fieldTemplates: 4, taskFieldPacks: 0, comparisonRelationships: 0, comparisonRelationshipEvidence: 0, comparisonRelationshipAdvisories: 0 });
       assert.equal(core.listImportRuns().length, 2);
     } finally { core.close(); }
   } finally { cleanup(dataDir); }

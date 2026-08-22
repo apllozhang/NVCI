@@ -1,6 +1,7 @@
 'use strict';
 
 const { claimNextRun, createStatus, ensureBundledProfiles, executeProfile, finishQueuedRun, listProfiles, readJson, recoverStaleClaims, writeJsonAtomic } = require('./collector-core');
+const { queueDueOnboardingTasks } = require('./onboarding-tasks');
 
 const DATA_DIR = process.env.NVCI_DATA_DIR || '/data';
 const POLL_SECONDS = Math.max(15, Number(process.env.NVCI_AUTOMATION_POLL_SECONDS || 60));
@@ -43,6 +44,8 @@ async function tick() {
   ensureBundledProfiles(DATA_DIR);
   const recovered = recoverStaleClaims(DATA_DIR);
   if (recovered) console.warn(JSON.stringify({ event: 'collector_stale_claims_recovered', count: recovered }));
+  const onboardingQueued = queueDueOnboardingTasks(DATA_DIR);
+  if (onboardingQueued.length) console.log(JSON.stringify({ event: 'onboarding_tasks_queued', tasks: onboardingQueued }));
   const queued = claimNextRun(DATA_DIR);
   if (queued) { await runOne(queued.profileId, 'manual_queue', queued.id); return; }
   const now = new Date();

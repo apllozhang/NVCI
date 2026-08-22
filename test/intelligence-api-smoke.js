@@ -73,8 +73,8 @@ async function run() {
     const inReview = await request(cookie, 'PATCH', `/api/intelligence/review-items/${encodeURIComponent(reviews.payload[0].review_id)}`, { status: 'in_review' });
     assert.equal(inReview.payload.status, 'in_review');
     const templates = await request(cookie, 'GET', '/api/intelligence/field-templates');
-    assert.equal(templates.payload.length, 1);
-    assert.equal(templates.payload[0].templateId, 'campus_switching_v1');
+    assert.equal(templates.payload.length, 4);
+    assert.ok(templates.payload.some((template) => template.templateId === 'campus_switching_v1'));
     const selectedFieldCodes = ['downlink_ports', 'uplink_ports', 'poe_support', 'switching_capacity', 'forwarding_rate', 'stacking_virtualization', 'ospf_support'];
     const submittedScope = await request(cookie, 'POST', `/api/intelligence/research-tasks/${encodeURIComponent(tasks.payload[0].task_id)}/field-packs`, { templateId: 'campus_switching_v1', selectedFieldCodes, rationale: 'API 验证：首批字段用于 ALE 园区交换机定型与 Aruba CX 对标。' });
     assert.equal(submittedScope.payload.pending.packStatus, 'pending_approval');
@@ -96,7 +96,7 @@ async function run() {
     assert.equal(snapshot.payload.facts.length, 75);
     assert.equal(snapshot.payload.researchTasks.length, 1);
     assert.equal(snapshot.payload.reviewItems.length, 3);
-    assert.equal(snapshot.payload.fieldTemplates.length, 1);
+    assert.equal(snapshot.payload.fieldTemplates.length, 4);
     assert.equal(snapshot.payload.taskFieldPacks.length, 1);
     assert.equal(snapshot.payload.taskFieldPackItems.filter((item) => item.selected).length, selectedFieldCodes.length);
     assert.ok(snapshot.payload.governanceAudit.length >= 4);

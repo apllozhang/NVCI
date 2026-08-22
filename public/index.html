@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>NVCI · 网络厂商竞品情报工作台</title>
-  <link rel="stylesheet" href="/styles.css?v=1.1.0" />
+  <link rel="stylesheet" href="/styles.css?v=1.2.0" />
 </head>
 <body>
   <div id="login-screen" class="login-shell">
@@ -28,6 +28,7 @@
       <div class="sidebar-brand"><div class="brand-mark compact">N</div><div><strong>NVCI</strong><span>厂商情报工作台</span></div></div>
       <nav id="nav" class="nav">
         <button data-view="dashboard" class="active"><span>▦</span> 控制台</button>
+        <button data-view="onboarding"><span>＋</span> 新手任务向导</button>
         <button data-view="vendors"><span>◈</span> 厂商记忆</button>
         <button data-view="products"><span>▤</span> 产品与彩页</button>
         <button data-view="intelligence"><span>◇</span> 情报核心（试点）</button>
@@ -45,10 +46,22 @@
   </div>
 
   <template id="dashboard-template">
-    <section class="hero-panel"><div><p class="eyebrow accent">LOW-COST CONTINUOUS COLLECTION</p><h3>先检查，再差异，后增量。</h3><p>路径健康检查只读取有限样本的 HTTP 元数据；只有资料 URL、资源 ID、长度、日期、ETag 或内容哈希发生变化时，才进入下载和解析队列。</p></div><button id="run-health" class="primary">运行路径健康检查</button></section>
+    <section class="hero-panel"><div><p class="eyebrow accent">LOW-COST CONTINUOUS COLLECTION</p><h3>先定义研究任务，再检查、差异与增量。</h3><p>新手任务向导会把厂商、产品线、执行时间、关键参数范围和证据门禁组织成一张可追踪任务卡；路径健康检查仍只读取有限样本的 HTTP 元数据。</p></div><div class="automation-actions"><button data-goto="onboarding" class="primary">新建研究任务</button><button id="run-health" class="secondary">运行路径健康检查</button></div></section>
     <section id="stats" class="stats-grid"></section>
     <section class="grid-two"><article class="panel"><div class="panel-head"><div><p class="eyebrow">VENDOR MEMORY</p><h3>厂商路径健康</h3></div><button data-goto="vendors" class="link-button">查看全部</button></div><div id="vendor-health" class="vendor-health"></div></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h3>最近任务</h3></div><button data-goto="runs" class="link-button">任务日志</button></div><div id="recent-runs" class="run-list"></div></article></section>
     <section class="panel"><div class="panel-head"><div><p class="eyebrow">COLLECTION GOVERNANCE</p><h3>资料状态分布</h3></div><button data-goto="products" class="link-button">审核产品状态</button></div><div id="status-bars" class="status-bars"></div></section>
+  </template>
+
+  <template id="onboarding-template">
+    <section class="onboarding-hero">
+      <div><p class="eyebrow accent">GUIDED RESEARCH MISSION</p><h3>把一次采集需求，变成可执行、可追踪、可复核的研究任务。</h3><p class="muted">选择厂商与产品线，决定立即、预约或周期执行，并为彩页归档指定关键参数范围。系统不会绕过来源审批，也不会用推断填补未披露数据。</p></div>
+      <div id="onboarding-quick-metrics" class="onboarding-quick-metrics"></div>
+    </section>
+    <section class="onboarding-layout">
+      <article class="panel onboarding-wizard-panel"><div id="wizard-root"></div></article>
+      <aside class="panel onboarding-task-panel"><div class="panel-head"><div><p class="eyebrow">MISSION QUEUE</p><h3>研究任务</h3><p class="muted">查看排队、采集、分析与复核状态。</p></div><button id="refresh-onboarding" class="secondary">刷新</button></div><div id="onboarding-task-list" class="onboarding-task-list"></div></aside>
+    </section>
+    <section id="onboarding-task-detail" class="panel onboarding-task-detail"><p class="muted">选择一个任务查看产品列表、官方 URL、执行队列和技术字段范围。</p></section>
   </template>
 
   <template id="vendors-template"><section class="panel"><div class="panel-head"><div><p class="eyebrow">SOURCE PLAYBOOK</p><h3>厂商采集记忆</h3><p class="muted">维护主证据、公开域名、下载方法、访问边界与路径健康样本。仅对小样本异常路径做方法恢复验证。</p></div></div><div id="vendor-cards" class="vendor-grid"></div></section></template>
@@ -67,6 +80,6 @@
   <template id="runs-template"><section class="panel"><div class="panel-head"><div><p class="eyebrow">AUDIT TRAIL</p><h3>任务日志</h3><p class="muted">记录路径检查、导入、人工确认与资料库变更，不记录密码或访问令牌。</p></div></div><div id="run-log" class="run-list large"></div></section></template>
 
   <template id="settings-template"><section class="grid-two"><article class="panel"><p class="eyebrow">LOCAL SECURITY</p><h3>部署安全基线</h3><ul class="check-list"><li>局域网登录密码通过环境变量提供，不写入 Git。</li><li>应用数据使用 Docker 卷持久化。</li><li>不保存 NAS、厂商、GitHub 或云盘凭据。</li><li>仅对管理员手动发起的公开路径健康样本进行网络探测。</li></ul></article><article class="panel"><p class="eyebrow">BACKUP</p><h3>导出状态</h3><p class="muted">导出厂商记忆、产品状态、文件索引、设置和运行日志，作为迁移或备份前的结构化记录。</p><button id="export-state-2" class="primary">下载 JSON 备份</button></article></section><section class="panel"><p class="eyebrow">DEPLOYMENT</p><h3>运行环境</h3><div id="setting-summary" class="detail-grid"></div></section></template>
-  <script src="/app.js?v=1.1.0"></script>
+  <script src="/app.js?v=1.2.0"></script>
 </body>
 </html>

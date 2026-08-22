@@ -18,8 +18,9 @@ NVCI 是一个面向局域网 NAS Docker 部署的图形化资料治理工作台
 | 三态覆盖率与审核 | 技术字段必须明确区分已核验、未披露和待复核；未披露不得推断为不支持，待复核项自动进入审核队列。 |
 | 型号级对标关系库（P0-4） | 将双方基础技术型号、首层硬门槛、关键偏离、采购验证问题、资料修订、SHA-256 与原文定位写入可审计多对多关系；关系必须先经人工批准，才可用于产品定型结论。 |
 | 直接候选审阅建议（P0-4.1） | 对直接候选单独写入建议、优先级、官方 SKU 勘误和采购验证问题；建议层不会改写关系类型或审核状态，也不会自动批准型号映射。 |
+| 新手任务向导（v1.2.0） | 以任务目标、厂商、产品线/系列来源、执行时间和关键参数范围组织研究任务；支持立即、一次预约、每日与每周执行，并将产品列表、产品页 URL、PDF URL、队列状态和待批准字段包放在同一任务卡。 |
 
-> 当前发布版本：**v1.1.0**。P0-3 的字段事实门禁见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)；P0-4 的关系状态、证据准入与验收标准见 [`P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md`](./P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md)；P0-4.1 的直接候选审阅建议、`4SFP`/`4SFP+` SKU 边界和人工批准要求见 [`P041_DIRECT_CANDIDATE_REVIEW_ADVISORY.md`](./P041_DIRECT_CANDIDATE_REVIEW_ADVISORY.md)。
+> 当前发布版本：**v1.2.0**。P0-3 的字段事实门禁见 [`P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md`](./P03_ALE_CONTROLLED_FIELD_FACT_IMPORT.md)；P0-4 的关系状态、证据准入与验收标准见 [`P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md`](./P04_MODEL_LEVEL_RELATIONSHIP_LIBRARY.md)；P0-4.1 的直接候选审阅建议、`4SFP`/`4SFP+` SKU 边界和人工批准要求见 [`P041_DIRECT_CANDIDATE_REVIEW_ADVISORY.md`](./P041_DIRECT_CANDIDATE_REVIEW_ADVISORY.md)；新手任务向导的产品边界、状态机和门禁见 [`docs/onboarding-wizard-prd.md`](./docs/onboarding-wizard-prd.md)。
 
 ## NAS Docker 部署
 

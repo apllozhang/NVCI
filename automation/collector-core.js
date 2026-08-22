@@ -281,7 +281,7 @@ function listProfiles(dataDir) {
       subseries: profile.subseries || { id: 'legacy', name: profile.displayName },
       enabled: profile.enabled,
       sourceCount: profile.sources.length,
-      modelCount: new Set(profile.sources.flatMap((source) => source.modelNames || [])).size,
+      modelCount: new Set(profile.sources.flatMap((source) => (Array.isArray(source.modelNames) && source.modelNames.length ? source.modelNames : [source.series]).filter(Boolean))).size,
       schedule: profile.schedule,
       bootstrapComplete: Boolean(state.bootstrapComplete),
       lastCompletedAt: state.lastCompletedAt || '',
@@ -404,14 +404,18 @@ async function executeProfile({ dataDir, profileId, force = false, fetchImpl = f
   return { snapshotId: identifier, profileId, outcome, completed: completed.length, changed: changed.length, failures, bytesDownloaded, snapshotDir, auditDir, bootstrapComplete: stateNext.bootstrapComplete };
 }
 
-function enqueueRun(dataDir, profileId, requestedBy = 'local-admin') {
+function enqueueRun(dataDir, profileId, requestedBy = 'local-admin', context = {}) {
   ensureBundledProfiles(dataDir);
   loadProfile(dataDir, profileId);
   const queueFile = path.join(dataDir, AUTOMATION_DIR_NAME, 'queue.json');
   const queue = readJson(queueFile, { items: [] });
   const existing = queue.items.find((item) => item.profileId === profileId && item.status === 'queued');
-  if (existing) return existing;
-  const item = { id: `request-${crypto.randomUUID().slice(0, 8)}`, profileId, requestedBy, requestedAt: nowIso(), status: 'queued' };
+  if (existing) {
+    if (context.onboardingTaskId) existing.onboardingTaskIds = [...new Set([...(existing.onboardingTaskIds || []), context.onboardingTaskId])];
+    writeJsonAtomic(queueFile, queue);
+    return existing;
+  }
+  const item = { id: `request-${crypto.randomUUID().slice(0, 8)}`, profileId, requestedBy, requestedAt: nowIso(), status: 'queued', onboardingTaskIds: context.onboardingTaskId ? [context.onboardingTaskId] : [] };
   queue.items.push(item); writeJsonAtomic(queueFile, queue); return item;
 }
 function recoverStaleClaims(dataDir, staleAfterMs = STALE_CLAIM_MS) {

@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nvci-workbench:1.1.0
+    image: nvci-workbench:1.2.0
     container_name: nvci-workbench
     restart: unless-stopped
     ports:
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nvci-workbench:1.1.0
+    image: nvci-workbench:1.2.0
     container_name: nvci-collector
     command: ["node", "automation/collector-worker.js"]
     restart: unless-stopped

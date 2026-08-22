@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { ensureBundledProfiles, enqueueRun, headTimeoutMs, listProfiles, profilePaths, readProfile, safeFetch, writeJsonAtomic } = require('./automation/collector-core');
 const { assertOfficialHttps, normalizeProfileDraft, profileDetail } = require('./automation/config-schema');
+const { createOnboardingTask, getOnboardingTask, listOnboardingTasks, pauseOnboardingTask, runOnboardingTaskNow } = require('./automation/onboarding-tasks');
 const { createIntelligenceCore } = require('./intelligence-core');
 const { planAleReadOnlyImport, executeAleReadOnlyImport } = require('./intelligence/ale-readonly-importer');
 const { planImport: planAleFieldFactImport, executeImport: executeAleFieldFactImport } = require('./intelligence/import-ale-field-facts');
@@ -115,6 +116,29 @@ ensureStore();
 // 不修改来源配置、活动资料库、PDF、快照或既有发布记录。
 const intelligence = createIntelligenceCore(DATA_DIR);
 
+function onboardingOptions() {
+  const profiles = listProfiles(DATA_DIR);
+  const vendors = readJson('vendor-memories.json', []).map((vendor) => ({
+    id: vendor.id,
+    name: vendor.name,
+    products: vendor.products,
+    status: vendor.status,
+    lastVerified: vendor.lastVerified || '',
+    profileCount: profiles.filter((profile) => profile.vendorId === vendor.id).length,
+  }));
+  return {
+    vendors,
+    profiles,
+    fieldTemplates: intelligence.listFieldTemplates(),
+    executionTypes: [
+      { id: 'immediate', name: '立即执行', description: '提交后立即写入 NAS 本地采集队列。' },
+      { id: 'once', name: '一次预约', description: '在指定本地时间执行一次。' },
+      { id: 'daily', name: '每日定时', description: '每天在指定本地时间执行。' },
+      { id: 'weekly', name: '每周定时', description: '每周在指定星期和本地时间执行。' },
+    ],
+  };
+}
+
 function recursiveScan(root, out = []) {
   if (!fs.existsSync(root)) return out;
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
@@ -172,7 +196,7 @@ function syncVendorFromProfile(profile) {
   writeJson('vendor-memories.json', vendors);
 }
 
-app.get('/health', (req, res) => res.json({ ok: true, service: 'NVCI Workbench', at: now() }));
+app.get('/health', (req, res) => res.json({ ok: true, service: 'NVCI Workbench', version: '1.2.0', at: now() }));
 app.post('/api/login', (req, res) => {
   if (typeof req.body.password !== 'string' || req.body.password.length < 1 || req.body.password !== ADMIN_PASSWORD) return res.status(401).json({ error: '本地管理员密码不正确。' });
   res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(signSession())}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL / 1000)}`);
@@ -362,6 +386,35 @@ app.post('/api/source-configs/:profileId/approve', auth, (req, res) => {
 });
 app.post('/api/source-configs/:profileId/suspend', auth, (req, res) => {
   try { const profile = readProfile(DATA_DIR, req.params.profileId); profile.approvalStatus = 'suspended'; profile.enabled = false; profile.updatedAt = now(); writeJsonAtomic(profilePaths(DATA_DIR, profile.profileId).profileFile, profile); addRun({ id: id('source-suspend'), type: '来源配置暂停', status: 'completed', summary: `已暂停 ${profile.displayName} 的后续自动运行`, createdAt: now(), details: { profileId: profile.profileId } }); res.json(profileDetails(profile.profileId)); } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+
+app.get('/api/onboarding/options', auth, (req, res) => res.json(onboardingOptions()));
+app.get('/api/onboarding/tasks', auth, (req, res) => res.json(listOnboardingTasks(DATA_DIR, intelligence)));
+app.get('/api/onboarding/tasks/:taskId', auth, (req, res) => {
+  const task = getOnboardingTask(DATA_DIR, req.params.taskId, intelligence);
+  if (!task) return res.status(404).json({ error: '未找到新手任务。' });
+  res.json(task);
+});
+app.post('/api/onboarding/tasks', auth, (req, res) => {
+  try {
+    const task = createOnboardingTask({ dataDir: DATA_DIR, input: req.body || {}, intelligence, actor: 'local-admin' });
+    addRun({ id: id('onboarding-task'), type: '新手任务向导', status: task.status, summary: `已创建“${task.title}”：${task.vendorIds.length} 个厂商、${task.profileIds.length} 个来源配置、${task.analysis.selectedFieldCodes.length} 个关键字段。`, createdAt: now(), details: { taskId: task.taskId, mode: task.mode, execution: task.execution, researchTaskId: task.researchTaskId, fieldPackId: task.fieldPackId } });
+    res.status(201).json(task);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/onboarding/tasks/:taskId/run-now', auth, (req, res) => {
+  try {
+    const result = runOnboardingTaskNow(DATA_DIR, req.params.taskId, intelligence, 'local-admin');
+    addRun({ id: id('onboarding-run'), type: '新手任务立即执行', status: 'queued', summary: `已为“${result.task.title}”写入 ${result.requests.length} 个来源采集请求。`, createdAt: now(), details: { taskId: result.task.taskId, requestIds: result.requests.map((item) => item.id) } });
+    res.status(202).json(result);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
+});
+app.post('/api/onboarding/tasks/:taskId/toggle-pause', auth, (req, res) => {
+  try {
+    const task = pauseOnboardingTask(DATA_DIR, req.params.taskId, intelligence);
+    addRun({ id: id('onboarding-pause'), type: task.status === 'paused' ? '新手任务暂停' : '新手任务恢复', status: 'completed', summary: `${task.status === 'paused' ? '已暂停' : '已恢复'}“${task.title}”。`, createdAt: now(), details: { taskId: task.taskId, status: task.status } });
+    res.json(task);
+  } catch (error) { res.status(400).json({ error: String(error.message || error) }); }
 });
 
 app.get('/api/automation', auth, (req, res) => {

@@ -113,7 +113,7 @@ function profileDetail(profile, state = {}) {
     approvalStatus: profile.approvalStatus || 'approved', enabled: Boolean(profile.enabled), officialDomains: profile.officialDomains || [], trustedRedirectDomains: profile.trustedRedirectDomains || [],
     productLine: profile.productLine || { id: 'legacy', name: profile.productLinePath?.[1] || '未分类', libraryRootName: profile.productLinePath?.[0] || '' },
     subseries: profile.subseries || { id: 'legacy', name: profile.displayName }, sourcePolicy: profile.sourcePolicy || '', evidencePolicy: profile.evidencePolicy || '',
-    sourceCount: profile.sources?.length || 0, modelCount: new Set((profile.sources || []).flatMap(source => source.modelNames || [])).size,
+    sourceCount: profile.sources?.length || 0, modelCount: new Set((profile.sources || []).flatMap(source => (Array.isArray(source.modelNames) && source.modelNames.length ? source.modelNames : [source.series]).filter(Boolean))).size,
     schedule: profile.schedule || {}, bootstrapComplete: Boolean(state.bootstrapComplete), lastCompletedAt: state.lastCompletedAt || '', lastOutcome: state.lastOutcome || 'not_started',
     sampleCheck: profile.sampleCheck || null, createdAt: profile.createdAt || '', updatedAt: profile.updatedAt || '',
     sources: (profile.sources || []).map(source => ({ ...source, modelNames: source.modelNames || [] })),

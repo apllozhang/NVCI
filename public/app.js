@@ -1,7 +1,9 @@
-const state = { overview: null, products: [], vendors: [], documents: [], settings: {}, runs: [] };
-const templates = { dashboard: 'dashboard-template', vendors: 'vendors-template', products: 'products-template', intelligence: 'intelligence-template', library: 'library-template', updates: 'updates-template', runs: 'runs-template', settings: 'settings-template' };
-const titles = { dashboard: ['OVERVIEW', '控制台'], vendors: ['SOURCE PLAYBOOK', '厂商记忆'], products: ['COLLATERAL GOVERNANCE', '产品与彩页'], intelligence: ['P0-1 INTELLIGENCE CORE', '情报核心（试点）'], library: ['ACTIVE LIBRARY', '本地资料库'], updates: ['INCREMENTAL UPDATE', '更新中心'], runs: ['AUDIT TRAIL', '任务日志'], settings: ['LOCAL ADMINISTRATION', '设置'] };
+const state = { overview: null, products: [], vendors: [], documents: [], settings: {}, runs: [], onboardingOptions: null, onboardingTasks: [] };
+const templates = { dashboard: 'dashboard-template', onboarding: 'onboarding-template', vendors: 'vendors-template', products: 'products-template', intelligence: 'intelligence-template', library: 'library-template', updates: 'updates-template', runs: 'runs-template', settings: 'settings-template' };
+const titles = { dashboard: ['OVERVIEW', '控制台'], onboarding: ['GUIDED RESEARCH MISSION', '新手任务向导'], vendors: ['SOURCE PLAYBOOK', '厂商记忆'], products: ['COLLATERAL GOVERNANCE', '产品与彩页'], intelligence: ['P0-1 INTELLIGENCE CORE', '情报核心（试点）'], library: ['ACTIVE LIBRARY', '本地资料库'], updates: ['INCREMENTAL UPDATE', '更新中心'], runs: ['AUDIT TRAIL', '任务日志'], settings: ['LOCAL ADMINISTRATION', '设置'] };
 let activeView = 'dashboard';
+let onboardingDraft = { step: 1, title: '', decisionQuestion: '', mode: 'vertical', priority: 'medium', vendorIds: [], profileIds: [], execution: { type: 'immediate', runAt: '', hour: 2, minute: 15, weekday: 1 }, analysis: { templateId: '', selectedFieldCodes: [], rationale: '' } };
+let selectedOnboardingTaskId = '';
 
 async function api(url, options = {}) {
   const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -23,15 +25,15 @@ async function bootstrap() {
   showApp(); await refreshState(); navigate('dashboard');
 }
 async function refreshState() {
-  const [overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview] = await Promise.all([api('/api/overview'), api('/api/vendors'), api('/api/products'), api('/api/documents'), api('/api/settings'), api('/api/runs'), api('/api/automation'), api('/api/source-configs'), api('/api/intelligence/overview')]);
-  Object.assign(state, { overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview });
+  const [overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview, onboardingOptions, onboardingTasks] = await Promise.all([api('/api/overview'), api('/api/vendors'), api('/api/products'), api('/api/documents'), api('/api/settings'), api('/api/runs'), api('/api/automation'), api('/api/source-configs'), api('/api/intelligence/overview'), api('/api/onboarding/options'), api('/api/onboarding/tasks')]);
+  Object.assign(state, { overview, vendors, products, documents, settings, runs, automation, sourceConfigs, intelligenceOverview, onboardingOptions, onboardingTasks });
 }
 function mount(view) {
   const host = document.getElementById('content'); host.innerHTML = ''; const template = document.getElementById(templates[view]); host.appendChild(template.content.cloneNode(true));
   document.getElementById('view-kicker').textContent = titles[view][0]; document.getElementById('view-title').textContent = titles[view][1];
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.getElementById('last-run').textContent = state.runs?.[0] ? `${state.runs[0].type} · ${fmtDate(state.runs[0].createdAt)}` : '尚未执行健康检查';
-  ({ dashboard: renderDashboard, vendors: renderVendors, products: renderProducts, intelligence: renderIntelligence, library: renderLibrary, updates: renderUpdates, runs: renderRuns, settings: renderSettings })[view]();
+  ({ dashboard: renderDashboard, onboarding: renderOnboarding, vendors: renderVendors, products: renderProducts, intelligence: renderIntelligence, library: renderLibrary, updates: renderUpdates, runs: renderRuns, settings: renderSettings })[view]();
   host.querySelectorAll('[data-goto]').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.goto)));
 }
 function navigate(view) { activeView = view; mount(view); }
@@ -434,6 +436,150 @@ async function renderIntelligence() {
     finally { executeButton.disabled = false; executeButton.textContent = '执行只读导入'; }
   });
   await load();
+}
+
+function onboardingStatusLabel(status) {
+  return ({ draft:'草稿', blocked:'配置阻塞', scheduled:'等待执行', queued:'已排队', collecting:'采集中', analysis_pending:'待参数分析', review_required:'待复核', completed:'已完成', failed:'失败', paused:'已暂停' })[status] || status;
+}
+function onboardingStatusTone(status) {
+  if (['completed'].includes(status)) return 'good';
+  if (['blocked','review_required','failed'].includes(status)) return 'warn';
+  return 'neutral';
+}
+function executionSummary(execution = {}) {
+  if (execution.type === 'immediate') return '提交后立即执行';
+  if (execution.type === 'once') return `一次预约 · ${fmtDate(execution.runAt || execution.nextRunAt)}`;
+  if (execution.type === 'daily') return `每天 ${String(execution.hour).padStart(2,'0')}:${String(execution.minute).padStart(2,'0')}`;
+  if (execution.type === 'weekly') return `每周${['日','一','二','三','四','五','六'][Number(execution.weekday)]} ${String(execution.hour).padStart(2,'0')}:${String(execution.minute).padStart(2,'0')}`;
+  return '未设置';
+}
+function renderOnboarding() {
+  const options = state.onboardingOptions || { vendors: [], profiles: [], fieldTemplates: [], executionTypes: [] };
+  const root = document.getElementById('wizard-root');
+  const listTarget = document.getElementById('onboarding-task-list');
+  const detailTarget = document.getElementById('onboarding-task-detail');
+  const metricsTarget = document.getElementById('onboarding-quick-metrics');
+  const steps = ['任务目标','厂商范围','产品线范围','执行方式','关键参数','确认提交'];
+  if (!onboardingDraft.analysis.templateId && options.fieldTemplates[0]) {
+    onboardingDraft.analysis.templateId = options.fieldTemplates[0].templateId;
+    onboardingDraft.analysis.selectedFieldCodes = options.fieldTemplates[0].items.filter(item => item.required || item.priority === 'high').map(item => item.fieldCode);
+  }
+
+  const selectedProfiles = () => options.profiles.filter(profile => onboardingDraft.profileIds.includes(profile.profileId));
+  const selectedTemplate = () => options.fieldTemplates.find(template => template.templateId === onboardingDraft.analysis.templateId) || options.fieldTemplates[0];
+  const availableProfiles = () => options.profiles.filter(profile => onboardingDraft.vendorIds.includes(profile.vendorId));
+  const stepError = (step) => {
+    if (step === 1 && (onboardingDraft.title.trim().length < 2 || onboardingDraft.decisionQuestion.trim().length < 5)) return '请填写任务名称和明确的决策问题。';
+    if (step === 2 && onboardingDraft.mode === 'vertical' && onboardingDraft.vendorIds.length !== 1) return '纵向分析必须选择一个厂商。';
+    if (step === 2 && onboardingDraft.mode === 'horizontal' && onboardingDraft.vendorIds.length < 2) return '横向分析至少选择两个厂商。';
+    if (step === 2 && onboardingDraft.mode === 'collection_update' && !onboardingDraft.vendorIds.length) return '请至少选择一个厂商。';
+    if (step === 3 && !onboardingDraft.profileIds.length) return '请至少选择一个产品线/系列来源配置。';
+    if (step === 3 && onboardingDraft.mode === 'horizontal' && !onboardingDraft.vendorIds.every(vendorId => selectedProfiles().some(profile => profile.vendorId === vendorId))) return '横向分析必须为每个已选厂商至少选择一个来源配置。';
+    if (step === 4 && onboardingDraft.execution.type === 'once' && (!onboardingDraft.execution.runAt || new Date(onboardingDraft.execution.runAt).getTime() <= Date.now())) return '一次预约时间必须晚于当前时间。';
+    if (step === 5 && (!onboardingDraft.analysis.templateId || !onboardingDraft.analysis.selectedFieldCodes.length)) return '请至少选择一个关键参数字段。';
+    return '';
+  };
+
+  const drawMetrics = () => {
+    const tasks = state.onboardingTasks || [];
+    const values = [
+      ['任务总数', tasks.length],
+      ['执行中', tasks.filter(task => ['queued','collecting'].includes(task.status)).length],
+      ['待复核', tasks.filter(task => ['blocked','review_required','analysis_pending'].includes(task.status)).length],
+      ['已批准来源', options.profiles.filter(profile => profile.approvalStatus === 'approved').length],
+    ];
+    metricsTarget.innerHTML = values.map(([label,value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join('');
+  };
+
+  const taskModeMarkup = () => [
+    ['vertical','单品牌纵向分析','建立单品牌产品树、系列/型号与参数梯度。'],
+    ['horizontal','多品牌横向对标','按同类产品和硬门槛建立型号级候选关系。'],
+    ['collection_update','资料增量更新','复用历史哈希，只处理新增、变化与失效资料。'],
+  ].map(([value,label,description]) => `<label class="choice-card ${onboardingDraft.mode===value?'selected':''}"><input type="radio" name="wizard-mode" value="${value}" ${onboardingDraft.mode===value?'checked':''}/><span><strong>${label}</strong><small>${description}</small></span></label>`).join('');
+
+  const stepMarkup = () => {
+    const step = onboardingDraft.step;
+    if (step === 1) return `<div class="wizard-copy"><p class="eyebrow">STEP 01 · RESEARCH INTENT</p><h3>这次任务要回答什么决策问题？</h3><p class="muted">好的任务不是“采集某厂商”，而是明确采集结果将用于产品定型、组合补位、竞争对标还是资料更新。</p></div><div class="wizard-form"><label>任务名称<input id="wizard-title" maxlength="120" value="${esc(onboardingDraft.title)}" placeholder="例如：ALE 与 HPE Aruba 园区接入交换机横向基线" /></label><label>决策问题<textarea id="wizard-question" maxlength="1000" placeholder="例如：双方当前公开产品线在 24/48 口、PoE、上联、堆叠、三层协议和管理能力上如何对应？">${esc(onboardingDraft.decisionQuestion)}</textarea></label><label>优先级<select id="wizard-priority"><option value="high" ${onboardingDraft.priority==='high'?'selected':''}>高</option><option value="medium" ${onboardingDraft.priority==='medium'?'selected':''}>中</option><option value="low" ${onboardingDraft.priority==='low'?'selected':''}>低</option></select></label><div class="choice-grid">${taskModeMarkup()}</div></div>`;
+    if (step === 2) return `<div class="wizard-copy"><p class="eyebrow">STEP 02 · VENDOR SCOPE</p><h3>选择需要纳入任务的厂商。</h3><p class="muted">状态只表示采集路径记忆的健康度；真正可执行性还取决于下一步是否已有批准来源配置。</p></div><div class="vendor-choice-grid">${options.vendors.map(vendor => `<label class="vendor-choice ${onboardingDraft.vendorIds.includes(vendor.id)?'selected':''}"><input type="checkbox" value="${esc(vendor.id)}" ${onboardingDraft.vendorIds.includes(vendor.id)?'checked':''}/><span><strong>${esc(vendor.name)}</strong><small>${esc(vendor.products)}</small><em>${vendor.profileCount} 个来源配置 · ${vendor.status==='verified'?'路径已验证':esc(vendor.status)}</em></span></label>`).join('')}</div>`;
+    if (step === 3) {
+      const profiles = availableProfiles();
+      return `<div class="wizard-copy"><p class="eyebrow">STEP 03 · PRODUCT LINE SCOPE</p><h3>选择产品线、系列或受控来源。</h3><p class="muted">批准来源可以直接执行；草稿或样本未通过的来源会进入准备清单，任务不会绕过门禁下载。</p></div><div class="profile-choice-list">${profiles.length ? profiles.map(profile => `<label class="profile-choice ${onboardingDraft.profileIds.includes(profile.profileId)?'selected':''} ${profile.approvalStatus!=='approved'?'not-ready':''}"><input type="checkbox" value="${esc(profile.profileId)}" ${onboardingDraft.profileIds.includes(profile.profileId)?'checked':''}/><span><strong>${esc(profile.vendorName)} · ${esc(profile.productLine?.name || '')} · ${esc(profile.subseries?.name || '')}</strong><small>${profile.sourceCount} 份资料 · ${profile.modelCount} 个型号 · 最近结果 ${esc(profile.lastOutcome || 'not_started')}</small></span><span class="badge ${profile.approvalStatus==='approved'?'good':'warn'}">${esc(approvalLabel(profile.approvalStatus))}</span></label>`).join('') : '<div class="wizard-empty"><strong>所选厂商尚无来源配置。</strong><p>请先到“更新中心”建立并通过样本检查，或者返回上一步选择已有来源的厂商。</p></div>'}</div>`;
+    }
+    if (step === 4) {
+      const executionOptions = options.executionTypes.map(type => `<label class="choice-card ${onboardingDraft.execution.type===type.id?'selected':''}"><input type="radio" name="execution-type" value="${esc(type.id)}" ${onboardingDraft.execution.type===type.id?'checked':''}/><span><strong>${esc(type.name)}</strong><small>${esc(type.description)}</small></span></label>`).join('');
+      const type = onboardingDraft.execution.type;
+      const schedule = type === 'once' ? `<label>预约时间<input id="wizard-run-at" type="datetime-local" value="${esc(onboardingDraft.execution.runAt)}" /></label>` : ['daily','weekly'].includes(type) ? `<div class="schedule-fields">${type==='weekly'?`<label>星期<select id="wizard-weekday">${['周日','周一','周二','周三','周四','周五','周六'].map((name,index)=>`<option value="${index}" ${Number(onboardingDraft.execution.weekday)===index?'selected':''}>${name}</option>`).join('')}</select></label>`:''}<label>小时<input id="wizard-hour" type="number" min="0" max="23" value="${Number(onboardingDraft.execution.hour)}" /></label><label>分钟<input id="wizard-minute" type="number" min="0" max="59" value="${Number(onboardingDraft.execution.minute)}" /></label></div>` : '<div class="callout success"><strong>立即执行</strong><br>来源全部通过门禁后，提交任务即写入 NAS 本地队列；关闭浏览器不会中断。</div>';
+      return `<div class="wizard-copy"><p class="eyebrow">STEP 04 · EXECUTION</p><h3>任务什么时候执行？</h3><p class="muted">所有时间均使用 NAS 本地时区。预约到期时如果来源尚未批准，任务会进入阻塞状态，不会越权下载。</p></div><div class="choice-grid execution-choice-grid">${executionOptions}</div><div class="wizard-form schedule-form">${schedule}</div>`;
+    }
+    if (step === 5) {
+      const template = selectedTemplate();
+      return `<div class="wizard-copy"><p class="eyebrow">STEP 05 · FACT SCOPE</p><h3>定义本轮要归档的关键参数。</h3><p class="muted">字段范围会写入 SQLite 情报核心并进入人工批准流程；它决定后续覆盖率和受控抽取口径，但不会自动生成不存在的参数。</p></div><div class="wizard-form"><label>字段模板<select id="wizard-template">${options.fieldTemplates.map(item=>`<option value="${esc(item.templateId)}" ${item.templateId===onboardingDraft.analysis.templateId?'selected':''}>${esc(item.name)}</option>`).join('')}</select></label><div class="callout">${esc(template?.description || '')}</div><div class="field-choice-grid">${(template?.items || []).map(item=>`<label class="field-choice ${onboardingDraft.analysis.selectedFieldCodes.includes(item.fieldCode)?'selected':''}"><input type="checkbox" value="${esc(item.fieldCode)}" ${onboardingDraft.analysis.selectedFieldCodes.includes(item.fieldCode)?'checked':''}/><span><strong>${esc(item.label)}${item.required?' *':''}</strong><small>${esc(item.fieldGroup)} · ${esc(item.evidenceRequirement)}</small></span></label>`).join('')}</div><label>范围说明<textarea id="wizard-rationale" maxlength="2000" placeholder="说明为什么选择这些字段，以及未披露和冲突如何处理。">${esc(onboardingDraft.analysis.rationale)}</textarea></label></div>`;
+    }
+    const profiles = selectedProfiles(); const template = selectedTemplate(); const blocked = profiles.filter(profile => profile.approvalStatus !== 'approved');
+    return `<div class="wizard-copy"><p class="eyebrow">STEP 06 · REVIEW</p><h3>确认任务边界与执行门禁。</h3><p class="muted">提交后将同时创建研究任务卡、待批准字段范围和执行计划。立即任务只有在全部来源已批准时才会排队。</p></div><div class="review-grid"><div><span>任务</span><strong>${esc(onboardingDraft.title)}</strong><small>${esc(onboardingDraft.decisionQuestion)}</small></div><div><span>研究模式</span><strong>${esc(onboardingDraft.mode==='vertical'?'单品牌纵向':onboardingDraft.mode==='horizontal'?'多品牌横向':'资料增量更新')}</strong><small>${onboardingDraft.vendorIds.length} 个厂商 · ${profiles.length} 个来源配置</small></div><div><span>执行方式</span><strong>${esc(executionSummary(onboardingDraft.execution))}</strong><small>由 NAS 后台 Worker 持续执行</small></div><div><span>参数范围</span><strong>${esc(template?.name || '')}</strong><small>${onboardingDraft.analysis.selectedFieldCodes.length} 个字段 · 提交后待人工批准</small></div></div>${blocked.length?`<div class="callout attention"><strong>任务将以“配置阻塞”状态保存。</strong><br>${blocked.map(profile=>esc(`${profile.vendorName} · ${profile.subseries?.name || profile.displayName}`)).join('；')} 尚未批准，需到更新中心完成样本检查和批准。</div>`:'<div class="callout success"><strong>来源门禁已通过。</strong><br>任务可以按当前时间设置进入采集队列。</div>'}`;
+  };
+
+  const bindStepInputs = () => {
+    document.getElementById('wizard-title')?.addEventListener('input', event => { onboardingDraft.title = event.target.value; });
+    document.getElementById('wizard-question')?.addEventListener('input', event => { onboardingDraft.decisionQuestion = event.target.value; });
+    document.getElementById('wizard-priority')?.addEventListener('change', event => { onboardingDraft.priority = event.target.value; });
+    root.querySelectorAll('input[name="wizard-mode"]').forEach(input => input.addEventListener('change', () => { onboardingDraft.mode=input.value; onboardingDraft.vendorIds=[]; onboardingDraft.profileIds=[]; drawWizard(); }));
+    root.querySelectorAll('.vendor-choice input').forEach(input => input.addEventListener('change', () => { if (onboardingDraft.mode==='vertical') onboardingDraft.vendorIds=input.checked?[input.value]:[]; else onboardingDraft.vendorIds=input.checked?[...new Set([...onboardingDraft.vendorIds,input.value])]:onboardingDraft.vendorIds.filter(id=>id!==input.value); onboardingDraft.profileIds=onboardingDraft.profileIds.filter(profileId=>options.profiles.some(profile=>profile.profileId===profileId&&onboardingDraft.vendorIds.includes(profile.vendorId))); drawWizard(); }));
+    root.querySelectorAll('.profile-choice input').forEach(input => input.addEventListener('change', () => { onboardingDraft.profileIds=input.checked?[...new Set([...onboardingDraft.profileIds,input.value])]:onboardingDraft.profileIds.filter(id=>id!==input.value); drawWizard(); }));
+    root.querySelectorAll('input[name="execution-type"]').forEach(input => input.addEventListener('change', () => { onboardingDraft.execution.type=input.value; drawWizard(); }));
+    document.getElementById('wizard-run-at')?.addEventListener('change', event => { onboardingDraft.execution.runAt=event.target.value; });
+    document.getElementById('wizard-weekday')?.addEventListener('change', event => { onboardingDraft.execution.weekday=Number(event.target.value); });
+    document.getElementById('wizard-hour')?.addEventListener('change', event => { onboardingDraft.execution.hour=Number(event.target.value); });
+    document.getElementById('wizard-minute')?.addEventListener('change', event => { onboardingDraft.execution.minute=Number(event.target.value); });
+    document.getElementById('wizard-template')?.addEventListener('change', event => { const template=options.fieldTemplates.find(item=>item.templateId===event.target.value); onboardingDraft.analysis.templateId=event.target.value; onboardingDraft.analysis.selectedFieldCodes=(template?.items||[]).filter(item=>item.required||item.priority==='high').map(item=>item.fieldCode); drawWizard(); });
+    root.querySelectorAll('.field-choice input').forEach(input => input.addEventListener('change', () => { onboardingDraft.analysis.selectedFieldCodes=input.checked?[...new Set([...onboardingDraft.analysis.selectedFieldCodes,input.value])]:onboardingDraft.analysis.selectedFieldCodes.filter(code=>code!==input.value); drawWizard(); }));
+    document.getElementById('wizard-rationale')?.addEventListener('input', event => { onboardingDraft.analysis.rationale=event.target.value; });
+  };
+
+  const submitTask = async () => {
+    const error = stepError(5); if (error) return notify(error,true);
+    const button = document.getElementById('wizard-submit'); button.disabled=true; button.textContent='正在创建任务…';
+    try {
+      const task = await api('/api/onboarding/tasks',{method:'POST',body:JSON.stringify({ title:onboardingDraft.title, decisionQuestion:onboardingDraft.decisionQuestion, mode:onboardingDraft.mode, priority:onboardingDraft.priority, profileIds:onboardingDraft.profileIds, execution:onboardingDraft.execution, analysis:onboardingDraft.analysis })});
+      selectedOnboardingTaskId=task.taskId;
+      onboardingDraft={ step:1,title:'',decisionQuestion:'',mode:'vertical',priority:'medium',vendorIds:[],profileIds:[],execution:{type:'immediate',runAt:'',hour:2,minute:15,weekday:1},analysis:{templateId:'',selectedFieldCodes:[],rationale:''} };
+      await refreshState(); renderOnboarding(); notify(task.status==='blocked'?'任务已保存，但存在未批准来源。':'任务已创建并进入执行流程。');
+    } catch (error) { notify(error.message,true); button.disabled=false; button.textContent='创建任务'; }
+  };
+
+  const drawWizard = () => {
+    root.innerHTML=`<div class="wizard-progress">${steps.map((name,index)=>`<button class="${onboardingDraft.step===index+1?'active':onboardingDraft.step>index+1?'complete':''}" data-wizard-step="${index+1}"><span>${String(index+1).padStart(2,'0')}</span>${name}</button>`).join('')}</div><div class="wizard-stage">${stepMarkup()}</div><div id="wizard-error" class="form-error"></div><div class="wizard-actions"><button id="wizard-prev" class="secondary" ${onboardingDraft.step===1?'disabled':''}>上一步</button>${onboardingDraft.step<6?'<button id="wizard-next" class="primary">下一步</button>':'<button id="wizard-submit" class="primary">创建任务</button>'}</div>`;
+    root.querySelectorAll('[data-wizard-step]').forEach(button=>button.addEventListener('click',()=>{const target=Number(button.dataset.wizardStep); if(target<onboardingDraft.step){onboardingDraft.step=target;drawWizard();}}));
+    document.getElementById('wizard-prev').addEventListener('click',()=>{if(onboardingDraft.step>1){onboardingDraft.step-=1;drawWizard();}});
+    document.getElementById('wizard-next')?.addEventListener('click',()=>{const error=stepError(onboardingDraft.step); if(error){document.getElementById('wizard-error').textContent=error;return;} onboardingDraft.step+=1;drawWizard();});
+    document.getElementById('wizard-submit')?.addEventListener('click',submitTask);
+    bindStepInputs();
+  };
+
+  const drawTaskList = () => {
+    const tasks=state.onboardingTasks||[];
+    listTarget.innerHTML=tasks.length?tasks.map(task=>`<button class="onboarding-task-card ${task.taskId===selectedOnboardingTaskId?'active':''}" data-task-id="${esc(task.taskId)}"><span class="badge ${onboardingStatusTone(task.status)}">${esc(onboardingStatusLabel(task.status))}</span><strong>${esc(task.title)}</strong><small>${task.vendorIds.length} 个厂商 · ${task.profileIds.length} 个来源 · ${esc(executionSummary(task.execution))}</small><em>${fmtDate(task.updatedAt)}</em></button>`).join(''):'<div class="wizard-empty"><strong>尚无研究任务。</strong><p>从左侧向导创建第一张任务卡。</p></div>';
+    listTarget.querySelectorAll('[data-task-id]').forEach(button=>button.addEventListener('click',()=>{selectedOnboardingTaskId=button.dataset.taskId;drawTaskList();drawTaskDetail();}));
+  };
+
+  const drawTaskDetail = async () => {
+    const taskId=selectedOnboardingTaskId||(state.onboardingTasks||[])[0]?.taskId;
+    if(!taskId){detailTarget.innerHTML='<p class="muted">创建任务后，这里会显示产品、URL、采集队列和参数范围。</p>';return;}
+    selectedOnboardingTaskId=taskId; detailTarget.innerHTML='<p class="muted">正在读取任务详情…</p>';
+    try {
+      const task=await api(`/api/onboarding/tasks/${encodeURIComponent(taskId)}`);
+      const pending=task.fieldScope?.pending; const active=task.fieldScope?.active;
+      const productRows=(task.products||[]).slice(0,200).map((product,index)=>`<tr><td>${index+1}</td><td>${esc(product.vendorName)}</td><td>${esc(product.productLine)}<br><span class="muted">${esc(product.series)}</span></td><td><strong>${esc(product.modelName)}</strong></td><td>${product.productPageUrl?`<a href="${esc(product.productPageUrl)}" target="_blank" rel="noreferrer">产品页</a>`:'—'}</td><td><a href="${esc(product.pdfUrl)}" target="_blank" rel="noreferrer">${esc(product.officialFileName)}</a></td><td>${esc(product.evidencePolicy)}</td></tr>`).join('');
+      const canRun=task.readiness?.ready&&!['queued','collecting'].includes(task.status);
+      detailTarget.innerHTML=`<div class="panel-head responsive"><div><p class="eyebrow">MISSION DETAIL</p><h3>${esc(task.title)}</h3><p class="muted">${esc(task.decisionQuestion)}</p></div><div class="automation-actions">${canRun?`<button id="task-run-now" class="primary">立即执行</button>`:''}${['daily','weekly','scheduled','paused'].includes(task.execution?.type)||task.status==='paused'?'<button id="task-toggle-pause" class="secondary">'+(task.status==='paused'?'恢复计划':'暂停计划')+'</button>':''}${pending?'<button id="task-approve-fields" class="secondary">批准参数范围</button>':''}</div></div><div class="task-stage-rail">${[['任务定义',true],['来源准备',task.readiness?.ready],['资料采集',['analysis_pending','review_required','completed'].includes(task.status)],['参数归档',Boolean(active)],['人工复核',task.status==='completed']].map(([label,done],index)=>`<div class="${done?'complete':''}"><span>${index+1}</span><strong>${label}</strong></div>`).join('')}</div><div class="stats-grid small-grid task-metrics"><div class="stat-card"><div class="label">当前状态</div><div class="value text-value">${esc(onboardingStatusLabel(task.status))}</div></div><div class="stat-card"><div class="label">产品型号</div><div class="value">${task.products?.length||0}</div></div><div class="stat-card"><div class="label">关键字段</div><div class="value">${task.analysis?.selectedFieldCodes?.length||0}</div></div><div class="stat-card"><div class="label">执行请求</div><div class="value">${task.requests?.length||0}</div></div></div>${task.readiness?.blockedProfileIds?.length?`<div class="callout attention"><strong>来源配置阻塞</strong><br>${task.readiness.blockedProfileIds.map(esc).join('；')} 尚未批准或已禁用。请到“更新中心”完成样本验证与批准。</div>`:''}<div class="task-evidence-summary"><div><span>研究模式</span><strong>${esc(task.mode)}</strong></div><div><span>执行方式</span><strong>${esc(executionSummary(task.execution))}</strong></div><div><span>字段范围</span><strong>${active?'已批准生效':pending?'待产品经理批准':'尚未提交'}</strong></div><div><span>研究任务 ID</span><strong>${esc(task.researchTaskId||'—')}</strong></div></div><div class="panel-head"><div><p class="eyebrow">PRODUCT & EVIDENCE INDEX</p><h3>产品列表与官方资料</h3><p class="muted">型号、产品页和 Data sheet URL 均来自受控来源配置；参数缺失不会被自动补齐。</p></div></div><div class="table-wrap"><table><thead><tr><th>#</th><th>厂商</th><th>产品线/系列</th><th>型号</th><th>产品页</th><th>官方资料</th><th>证据规则</th></tr></thead><tbody>${productRows||'<tr><td colspan="7" class="muted">尚无型号级资料。</td></tr>'}</tbody></table></div>`;
+      document.getElementById('task-run-now')?.addEventListener('click',async()=>{try{await api(`/api/onboarding/tasks/${encodeURIComponent(task.taskId)}/run-now`,{method:'POST',body:'{}'});await refreshState();drawTaskList();drawTaskDetail();drawMetrics();notify('已写入 NAS 本地采集队列。');}catch(error){notify(error.message,true);}});
+      document.getElementById('task-toggle-pause')?.addEventListener('click',async()=>{try{await api(`/api/onboarding/tasks/${encodeURIComponent(task.taskId)}/toggle-pause`,{method:'POST',body:'{}'});await refreshState();drawTaskList();drawTaskDetail();notify('任务计划状态已更新。');}catch(error){notify(error.message,true);}});
+      document.getElementById('task-approve-fields')?.addEventListener('click',async()=>{const reason=window.prompt('请填写批准本轮技术字段范围的产品决策依据：');if(!reason)return;try{await api(`/api/intelligence/field-packs/${encodeURIComponent(pending.taskFieldPackId)}/approve`,{method:'POST',body:JSON.stringify({reason})});await refreshState();drawTaskDetail();notify('技术字段范围已批准，成为后续参数归档口径。');}catch(error){notify(error.message,true);}});
+    } catch(error){detailTarget.innerHTML=`<p class="form-error">${esc(error.message)}</p>`;}
+  };
+
+  document.getElementById('refresh-onboarding').addEventListener('click',async()=>{try{await refreshState();renderOnboarding();notify('任务状态已刷新。');}catch(error){notify(error.message,true);}});
+  drawMetrics(); drawWizard(); drawTaskList(); drawTaskDetail();
 }
 function renderRuns(){ document.getElementById('run-log').innerHTML=state.runs.length?state.runs.map(runMarkup).join(''):'<p class="muted">尚无任务日志。</p>'; }
 function renderSettings(){ const root=state.settings.libraryPath||'/data/library'; document.getElementById('setting-summary').innerHTML=[['服务端口',location.port||'80'],['资料库路径',root],['自动健康检查',state.settings.autoHealthCheck?'已启用':'已关闭'],['检查间隔',`${state.settings.healthIntervalHours||168} 小时`]].map(([k,v])=>`<div class="detail"><span>${k}</span><strong>${esc(v)}</strong></div>`).join(''); document.getElementById('export-state-2').addEventListener('click',exportState); }
