@@ -5,7 +5,7 @@ const path = require('path');
 const { enqueueRun, listProfiles, profilePaths, readJson, readProfile, writeJsonAtomic } = require('./collector-core');
 
 const TASKS_FILE = 'onboarding-tasks.json';
-const VALID_MODES = new Set(['vertical', 'horizontal', 'collection_update']);
+const VALID_MODES = new Set(['single_vendor_archive', 'multi_vendor_archive', 'collection_update']);
 const VALID_EXECUTION_TYPES = new Set(['immediate', 'once', 'daily', 'weekly']);
 
 function nowIso(clock = () => new Date()) { return clock().toISOString(); }
@@ -63,6 +63,11 @@ function readinessForProfiles(profiles) {
   const blocked = profiles.filter((profile) => profile.approvalStatus !== 'approved' || !profile.enabled);
   return { ready: blocked.length === 0, blockedProfileIds: blocked.map((profile) => profile.profileId) };
 }
+function normalizeMode(value) {
+  const legacy = { vertical: 'single_vendor_archive', horizontal: 'multi_vendor_archive' };
+  const normalized = legacy[String(value || '')] || String(value || '');
+  return VALID_MODES.has(normalized) ? normalized : 'single_vendor_archive';
+}
 function taskStatus(task, dataDir) {
   if (task.status === 'paused') return 'paused';
   const profiles = listProfiles(dataDir).filter((profile) => task.profileIds.includes(profile.profileId));
@@ -72,7 +77,7 @@ function taskStatus(task, dataDir) {
   if (requests.some((item) => item.status === 'claimed')) return 'collecting';
   if (requests.some((item) => item.status === 'queued')) return 'queued';
   if (requests.some((item) => item.status === 'failed')) return 'review_required';
-  if (requests.length && requests.every((item) => item.status === 'completed')) return 'analysis_pending';
+  if (requests.length && requests.every((item) => item.status === 'completed')) return 'archive_ready';
   if (['once', 'daily', 'weekly'].includes(task.execution?.type) && task.execution?.nextRunAt) return 'scheduled';
   return task.status || 'draft';
 }
@@ -125,13 +130,14 @@ function queueTaskProfiles(dataDir, task, requestedBy = 'local-admin') {
 function createOnboardingTask({ dataDir, input, intelligence, actor = 'local-admin', clock = () => new Date() }) {
   const title = text(input.title, '任务名称', 2, 120);
   const decisionQuestion = text(input.decisionQuestion, '决策问题', 5, 1000);
-  const mode = VALID_MODES.has(String(input.mode)) ? String(input.mode) : 'vertical';
+  const mode = normalizeMode(input.mode);
   const profileIds = uniqueStrings(input.profileIds, '来源配置', 50);
   const available = listProfiles(dataDir);
   const profiles = available.filter((profile) => profileIds.includes(profile.profileId));
   if (profiles.length !== profileIds.length) throw new Error('部分来源配置不存在，请刷新后重新选择。');
   const vendorIds = [...new Set(profiles.map((profile) => profile.vendorId))];
-  if (mode === 'horizontal' && vendorIds.length < 2) throw new Error('横向分析至少需要选择两个厂商。');
+  if (mode === 'single_vendor_archive' && vendorIds.length !== 1) throw new Error('单品牌采集归档必须选择一个厂商。');
+  if (mode === 'multi_vendor_archive' && vendorIds.length < 2) throw new Error('多品牌并行采集归档至少需要选择两个厂商。');
   const execution = normalizeExecution(input.execution, clock);
   const templateId = text(input.analysis?.templateId, '技术字段模板', 2, 128);
   const selectedFieldCodes = uniqueStrings(input.analysis?.selectedFieldCodes, '技术字段', 100);
@@ -140,10 +146,10 @@ function createOnboardingTask({ dataDir, input, intelligence, actor = 'local-adm
   const taskId = `onboarding_${crypto.randomUUID().slice(0, 8)}`;
   const researchTask = intelligence.upsertResearchTask({
     title,
-    mode: mode === 'collection_update' ? 'vertical' : mode,
+    mode: 'collection_archive',
     decisionQuestion,
     scope: {
-      source: 'onboarding_wizard', onboardingTaskId: taskId, vendorIds, profileIds,
+      source: 'onboarding_wizard', phase: 'collection_archive', onboardingTaskId: taskId, vendorIds, profileIds,
       productLines: [...new Set(profiles.map((profile) => profile.productLine?.name || '未分类'))],
       evidencePolicy: 'official-first', uncertaintyPolicy: ['官方明确说明', '基于官方资料推导', '未披露', '待验证'],
     },

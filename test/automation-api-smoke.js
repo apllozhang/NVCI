@@ -82,9 +82,10 @@ async function request(url, options = {}) {
   assert.ok(onboardingOptions.data.vendors.length >= 7);
   assert.ok(onboardingOptions.data.profiles.some((item) => item.profileId === 'ale_omniswitch'));
   assert.ok(onboardingOptions.data.fieldTemplates.some((item) => item.templateId === 'campus_switching_v1'));
-  const onboardingCreated = await request('/api/onboarding/tasks', { method:'POST', headers, body:JSON.stringify({ title:'ALE OmniSwitch 新手任务回归', decisionQuestion:'建立 ALE OmniSwitch 产品列表、官方 URL 与关键交换机参数归档范围。', mode:'vertical', priority:'high', profileIds:['ale_omniswitch'], execution:{ type:'weekly', weekday:1, hour:2, minute:15 }, analysis:{ templateId:'campus_switching_v1', selectedFieldCodes:['form_factor','downlink_ports','switching_capacity','ospf_support'], rationale:'API 回归：验证任务卡、产品 URL、执行计划与字段包。' } }) });
+  const onboardingCreated = await request('/api/onboarding/tasks', { method:'POST', headers, body:JSON.stringify({ title:'ALE OmniSwitch 新手任务回归', decisionQuestion:'建立 ALE OmniSwitch 产品列表、官方 URL 与关键交换机参数归档范围。', mode:'single_vendor_archive', priority:'high', profileIds:['ale_omniswitch'], execution:{ type:'weekly', weekday:1, hour:2, minute:15 }, analysis:{ templateId:'campus_switching_v1', selectedFieldCodes:['form_factor','downlink_ports','switching_capacity','ospf_support'], rationale:'API 回归：验证采集归档任务卡、产品 URL、执行计划与字段目录。' } }) });
   assert.equal(onboardingCreated.response.status, 201, `onboarding create failed: ${JSON.stringify(onboardingCreated.data)}`);
   assert.equal(onboardingCreated.data.status, 'scheduled');
+  assert.equal(onboardingCreated.data.mode, 'single_vendor_archive');
   assert.equal(onboardingCreated.data.vendorIds[0], 'ale');
   assert.ok(onboardingCreated.data.products.length >= 15);
   assert.ok(onboardingCreated.data.products.every((item) => item.pdfUrl && item.modelName));
